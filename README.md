@@ -2,7 +2,7 @@
 
 [![Python 3.14+](https://img.shields.io/badge/python-3.14+-blue.svg)](https://www.python.org/downloads/)
 [![Streamlit 1.55+](https://img.shields.io/badge/streamlit-1.55+-FF4B4B.svg)](https://streamlit.io/)
-[![Tests](https://img.shields.io/badge/tests-27%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-30%20passed-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 An intelligent, conversational pair-programming and mentorship assistant for evaluating intern tasks, answering technical questions in multiple languages (English, Tamil, Hindi), scheduling review sessions, and dispatching audit-trailed notifications.
@@ -21,7 +21,12 @@ An intelligent, conversational pair-programming and mentorship assistant for eva
    - **Voice Output**: In-memory Text-to-Speech audio player (`gTTS` / Gemini Live API fallback) allowing interns to listen to mentor explanations.
    - **Voice Input**: Integrated microphone audio capture (`st.audio_input`).
 
-3. **In-Chat Candidate Submission & Evaluation**:
+3. **Multi-Provider Backend Hierarchy**:
+   - Automatically and safely detects `.env` configurations (supporting `.env` files or `.env/api_key` directories, quoted or unquoted keys).
+   - **Hierarchy**: Primary Gemini Key -> Secondary Gemini Key -> OpenAI -> Deterministic Rule-Based Fallback.
+   - Never exposes secret keys or configuration dropdowns in the UI.
+
+4. **In-Chat Candidate Submission & Evaluation**:
    - Directly attach project files / ZIP archives or paste public GitHub repository URLs inside the chat.
    - Instant structural & code comparison against official company requirements using Gemini or the deterministic fallback engine.
    - In-chat conversational feedback breakdown: Score, Strengths, Things to fix, and Actionable next steps.

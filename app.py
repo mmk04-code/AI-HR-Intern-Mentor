@@ -10,10 +10,18 @@ import io
 import json
 from datetime import datetime, date, time
 import streamlit as st
-from dotenv import load_dotenv
 
-# Load local environment variables (strictly backend, never exposed in UI)
-load_dotenv()
+# Safe environment loading without exposing credentials
+from src.config import (
+    load_project_env,
+    get_primary_gemini_key,
+    get_secondary_gemini_key,
+    get_openai_key,
+    has_gemini_configured,
+    has_openai_configured
+)
+
+load_project_env()
 
 # Add project root to sys.path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -48,26 +56,38 @@ from src.email_service import is_smtp_configured
 # Initialize database
 init_db()
 
-# Streamlit Page Setup - Minimalist Layout
+# Streamlit Page Setup - Wide Layout with Centered Column Constraint
 st.set_page_config(
     page_title="AI Mentor • Internship Assistant",
     page_icon="🎓",
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Minimalist Custom CSS (Gemini-inspired conversational design)
+# Polished, Responsive UI Alignment CSS
 st.markdown("""
 <style>
-    /* Hide default Streamlit multi-page sidebar and footer */
+    /* Hide default Streamlit multi-page sidebar and header clutter */
     [data-testid="stSidebar"] { display: none !important; }
     #MainMenu { visibility: hidden; }
     footer { visibility: hidden; }
     header { visibility: hidden; }
 
-    /* Clean typography & background */
+    /* Main Container Alignment & Responsive Margins */
+    .block-container {
+        max-width: 860px !important;
+        padding-top: 1.25rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 1.25rem !important;
+        padding-right: 1.25rem !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    /* Clean Body Typography */
     body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: #1e293b;
     }
 
     /* Minimalist Top App Bar */
@@ -75,12 +95,12 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 0 16px 0;
+        padding: 8px 0 16px 0;
         border-bottom: 1px solid #e2e8f0;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
     }
     .brand-title {
-        font-size: 1.25rem;
+        font-size: 1.3rem;
         font-weight: 700;
         color: #0f172a;
         display: flex;
@@ -95,43 +115,96 @@ st.markdown("""
         color: #334155;
         font-size: 0.85rem;
         font-weight: 600;
-        padding: 4px 12px;
+        padding: 6px 14px;
         border-radius: 9999px;
+        border: 1px solid #e2e8f0;
     }
 
     /* Assignment context banner */
     .task-banner {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
-        border-left: 4px solid #3b82f6;
+        border-left: 4px solid #2563eb;
         border-radius: 8px;
-        padding: 10px 14px;
-        font-size: 0.9rem;
+        padding: 10px 16px;
+        font-size: 0.92rem;
         color: #1e293b;
         margin-bottom: 16px;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
-    /* Chat bubble enhancements */
+    /* Chat Message Alignment (User Right, Assistant Left) */
+    div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
+        flex-direction: row-reverse !important;
+        text-align: right !important;
+        background-color: #eff6ff !important;
+        border: 1px solid #bfdbfe !important;
+        border-radius: 18px 18px 4px 18px !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+        max-width: 82% !important;
+        padding: 12px 18px !important;
+        box-shadow: 0 1px 2px rgba(37,99,235,0.05) !important;
+    }
+    div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 18px 18px 18px 4px !important;
+        margin-left: 0 !important;
+        margin-right: auto !important;
+        max-width: 88% !important;
+        padding: 14px 18px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+    }
+
+    /* Message content wrapping */
+    [data-testid="stChatMessageContent"] {
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        line-height: 1.6 !important;
+    }
+
+    /* Voice indicator badge */
     .voice-tag {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        font-size: 0.75rem;
+        gap: 5px;
+        font-size: 0.78rem;
         font-weight: 600;
         color: #2563eb;
         background: #eff6ff;
-        padding: 2px 8px;
-        border-radius: 4px;
-        margin-bottom: 6px;
+        border: 1px solid #dbeafe;
+        padding: 3px 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
     }
 
-    /* Status badges */
-    .badge-comp { background: #dcfce7; color: #166534; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
-    .badge-warn { background: #fef3c7; color: #92400e; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
-    .badge-fail { background: #fee2e2; color: #991b1b; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+    /* Status Badges */
+    .badge-comp { background: #dcfce7; color: #166534; font-weight: 700; padding: 3px 10px; border-radius: 6px; font-size: 0.85rem; }
+    .badge-warn { background: #fef3c7; color: #92400e; font-weight: 700; padding: 3px 10px; border-radius: 6px; font-size: 0.85rem; }
+    .badge-fail { background: #fee2e2; color: #991b1b; font-weight: 700; padding: 3px 10px; border-radius: 6px; font-size: 0.85rem; }
+
+    /* Attachment & Voice Action Strip */
+    .action-strip {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin-top: 10px;
+        margin-bottom: 8px;
+    }
+
+    /* Consistent Button Heights */
+    .stButton button {
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        min-height: 40px !important;
+        transition: all 0.15s ease-in-out !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -145,8 +218,8 @@ if "hr_messages" not in st.session_state:
     st.session_state["hr_messages"] = [
         {
             "role": "assistant",
-            "content": "Hello HR Coordinator! I can help you onboard interns and assign technical tasks.\n\n"
-                       "You can type instructions naturally and attach your **Excel/CSV roster** and **Company Requirements document** below.",
+            "content": "Hello HR Coordinator! I'm your conversational assistant for onboarding interns and assigning tasks.\n\n"
+                       "You can type or speak instructions naturally, attach an **Excel/CSV intern roster**, and attach your **company requirements document**.",
             "audio": None
         }
     ]
@@ -159,20 +232,21 @@ if "pending_assignment" not in st.session_state:
 
 
 # ---------------------------------------------------------------------
-# VIEW 1: CLEAN LOGIN SCREEN
+# VIEW 1: CLEAN & ALIGNED LOGIN SCREEN
 # ---------------------------------------------------------------------
 if not st.session_state["role"]:
-    st.markdown("<div style='text-align: center; margin-top: 40px; margin-bottom: 25px;'>", unsafe_allow_html=True)
-    st.markdown("# 🎓 AI Mentor & Task Assistant")
-    st.markdown("<p style='color: #64748b; font-size: 1.05rem;'>Conversational internship task onboarding, mentorship, and automated evaluation.</p>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; margin-top: 50px; margin-bottom: 30px;'>", unsafe_allow_html=True)
+    st.markdown("# 🎓 AI Mentor & Task Review Assistant")
+    st.markdown("<p style='color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 8px auto 0 auto;'>Conversational internship onboarding, natural-language task debriefing, and automated code review.</p>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2, gap="medium")
 
     with col1:
         with st.container(border=True):
-            st.markdown("### 🏢 HR / Company")
-            st.caption("Import intern rosters, assign tasks using requirements docs, and monitor progress.")
+            st.markdown("### 🏢 HR / Company Portal")
+            st.write("Import intern rosters from Excel/CSV, assign technical tasks with company requirements, and monitor progress.")
+            st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
             if st.button("Enter as HR Coordinator", type="primary", use_container_width=True):
                 st.session_state["role"] = "hr"
                 st.session_state["current_user"] = {"name": "HR Coordinator", "role": "HR Manager"}
@@ -180,8 +254,8 @@ if not st.session_state["role"]:
 
     with col2:
         with st.container(border=True):
-            st.markdown("### 🎓 Employee / Intern")
-            st.caption("Receive 1-on-1 AI mentorship, ask questions in Tamil/English/Hindi, and submit work.")
+            st.markdown("### 🎓 Employee / Intern Portal")
+            st.write("Receive 1-on-1 AI mentorship, ask questions in Tamil, English, or Hindi, listen to spoken explanations, and submit work.")
 
             all_candidates = get_candidates()
             if all_candidates:
@@ -228,12 +302,12 @@ if not st.session_state["role"]:
 
 
 # ---------------------------------------------------------------------
-# MINIMALIST TOP NAVBAR (Rendered for both roles)
+# TOP NAVBAR (Aligned with Conversation Column)
 # ---------------------------------------------------------------------
 user_data = st.session_state["current_user"]
 role_type = st.session_state["role"]
 
-nav_col1, nav_col2 = st.columns([3, 1])
+nav_col1, nav_col2 = st.columns([4, 1])
 with nav_col1:
     st.markdown(f"""
     <div class="top-navbar">
@@ -241,7 +315,9 @@ with nav_col1:
             <span>🎓</span> AI Mentor
         </div>
         <div class="user-pill">
-            <span>{'🏢' if role_type == 'hr' else '👤'}</span> {user_data.get('name', 'User')} ({'HR' if role_type == 'hr' else user_data.get('role', 'Intern')})
+            <span>{'🏢' if role_type == 'hr' else '👤'}</span> {user_data.get('name', 'User')}
+            <span style="color: #94a3b8;">•</span>
+            <span style="color: #64748b;">{'HR Coordinator' if role_type == 'hr' else user_data.get('role', 'Intern')}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -260,7 +336,7 @@ with nav_col2:
 # VIEW 2: HR CHAT INTERFACE
 # ---------------------------------------------------------------------
 if role_type == "hr":
-    # Display HR Chat Messages
+    # Render HR Chat History
     for msg in st.session_state["hr_messages"]:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
@@ -268,7 +344,7 @@ if role_type == "hr":
                 card = msg["card"]
                 with st.container(border=True):
                     st.markdown(f"### 📋 Assignment Summary: **{card['task_title']}**")
-                    st.markdown(f"**Deadline:** `{card['deadline']}`")
+                    st.markdown(f"**Target Deadline:** `{card['deadline']}`")
                     st.markdown(f"**Interns to Assign ({len(card['interns'])}):**")
                     for i in card["interns"]:
                         st.markdown(f"- **{i['name']}** (`{i['email']}`) — {i['role']}")
@@ -276,8 +352,7 @@ if role_type == "hr":
                         st.caption(f"Requirements: `{card['requirements_filename']}` ({len(card['requirements_text'])} chars)")
 
                     if not card.get("confirmed"):
-                        if st.button("✅ Confirm & Assign Tasks to Interns", key=f"confirm_btn_{card['id']}"):
-                            # Save all candidates and tasks to DB
+                        if st.button("✅ Confirm & Assign Tasks to Interns", key=f"confirm_btn_{card['id']}", type="primary", use_container_width=True):
                             assigned_names = []
                             for intern in card["interns"]:
                                 cid = create_candidate(
@@ -300,15 +375,15 @@ if role_type == "hr":
                             st.session_state["pending_assignment"] = None
                             st.session_state["hr_messages"].append({
                                 "role": "assistant",
-                                "content": f"✅ **Assignment Completed!** Successfully created tasks for {len(assigned_names)} interns: {', '.join(assigned_names)}.\n\nThey can now log in to receive their AI mentor debriefing.",
+                                "content": f"✅ **Assignment Completed!** Successfully assigned **{card['task_title']}** to {len(assigned_names)} interns: {', '.join(assigned_names)}.\n\nThey can now log in to receive their AI mentor debriefing.",
                                 "audio": None
                             })
                             st.rerun()
                     else:
                         st.success("Tasks confirmed and assigned.")
 
-    # Attachment & Voice Controls (Collapsible clean bar)
-    with st.expander("📎 Attach Documents & Voice Input", expanded=False):
+    # Aligned Attachment & Voice Bar
+    with st.expander("📎 Attach Spreadsheets / Documents & Voice Input", expanded=False):
         c_att1, c_att2 = st.columns(2)
         with c_att1:
             hr_roster_file = st.file_uploader(
@@ -323,9 +398,9 @@ if role_type == "hr":
                 key="hr_req_upload"
             )
 
-        col_sample_hr, col_mic_hr = st.columns([2, 1])
+        col_sample_hr, col_mic_hr = st.columns([3, 2])
         with col_sample_hr:
-            if st.button("⚡ Use Sample Roster & Requirements"):
+            if st.button("⚡ Auto-Attach Sample Roster & Requirements", use_container_width=True):
                 sample_roster = os.path.join(os.path.dirname(__file__), "sample_data", "interns_roster.xlsx")
                 sample_req = os.path.join(os.path.dirname(__file__), "sample_data", "company_requirements.md")
                 with open(sample_roster, "rb") as f:
@@ -334,23 +409,20 @@ if role_type == "hr":
                 with open(sample_req, "rb") as f:
                     st.session_state["cached_req_bytes"] = f.read()
                     st.session_state["cached_req_name"] = "company_requirements.md"
-                st.success("Loaded sample Excel roster & requirements. Now type your instruction below!")
+                st.success("Attached sample roster & requirements! Now type your instruction below.")
 
         with col_mic_hr:
-            st.caption("🎙️ Voice Input")
             hr_audio = st.audio_input("Record HR instruction", key="hr_audio_mic")
 
-    # HR Chat Input Box
+    # Bottom Chat Composer
     hr_prompt = st.chat_input("Instruct HR Assistant... e.g. 'Import interns from Excel and assign Module 1. Deadline is Friday.'")
 
-    # Handle voice prompt if recorded
     if hr_audio is not None and not hr_prompt:
         hr_prompt = "Import interns from the attached spreadsheet and assign the company requirements task. Deadline is Friday."
 
     if hr_prompt:
         st.session_state["hr_messages"].append({"role": "user", "content": hr_prompt, "audio": None})
 
-        # Process attachments
         r_bytes = None
         r_name = None
         doc_bytes = None
@@ -370,7 +442,6 @@ if role_type == "hr":
             doc_bytes = st.session_state["cached_req_bytes"]
             doc_name = st.session_state.get("cached_req_name", "requirements.md")
 
-        # Parse instruction
         parsed_action = process_hr_instruction(
             prompt=hr_prompt,
             attached_file_bytes=r_bytes,
@@ -381,7 +452,6 @@ if role_type == "hr":
 
         if parsed_action["has_assignment_intent"] and (parsed_action["interns"] or r_bytes):
             if not parsed_action["interns"] and r_bytes:
-                # Parse spreadsheet directly
                 sp = parse_spreadsheet(r_bytes, r_name)
                 parsed_action["interns"] = sp.get("records", [])
 
@@ -410,7 +480,6 @@ if role_type == "hr":
             st.rerun()
 
         elif any(k in hr_prompt.lower() for k in ["progress", "status", "who", "submitted", "review"]):
-            # Progress inquiry
             tasks = get_all_tasks()
             if not tasks:
                 reply = "No tasks or submissions have been registered yet."
@@ -430,7 +499,6 @@ if role_type == "hr":
             st.rerun()
 
         else:
-            # General HR query
             st.session_state["hr_messages"].append({
                 "role": "assistant",
                 "content": "I'm ready to help. You can attach an **Excel intern roster** and a **requirements document**, then instruct me to assign tasks. Or ask me about candidate progress at any time!",
@@ -454,9 +522,9 @@ elif role_type == "intern":
         st.markdown(f"""
         <div class="task-banner">
             <div>
-                <strong>📌 Task:</strong> {active_task['module_name']} — <em>{active_task['title']}</em>
+                <strong>📌 Assigned Task:</strong> {active_task['module_name']} — <em>{active_task['title']}</em>
             </div>
-            <div style="font-size: 0.8rem; color: #64748b;">
+            <div style="font-size: 0.85rem; font-weight: 600; color: #475569; background: #e2e8f0; padding: 2px 10px; border-radius: 9999px;">
                 {rev_text}
             </div>
         </div>
@@ -465,7 +533,7 @@ elif role_type == "intern":
         st.warning("You do not have any active assigned tasks. Please contact HR.")
         st.stop()
 
-    # Step 1: Initial Mentor Welcome if conversation is empty
+    # Initial Mentor Welcome if conversation is empty
     if not st.session_state["intern_messages"]:
         i18n_welcome = (
             f"Hello **{candidate['name']}**! 👋 I am your dedicated AI Mentor for **{active_task['title']}**.\n\n"
@@ -493,10 +561,9 @@ elif role_type == "intern":
             if msg.get("show_lang_options") and not st.session_state["intern_lang"]:
                 col_l1, col_l2, col_l3 = st.columns(3)
                 with col_l1:
-                    if st.button("🇬🇧 English", key="btn_lang_en"):
+                    if st.button("🇬🇧 English", key="btn_lang_en", use_container_width=True):
                         st.session_state["intern_lang"] = "English"
                         msg["show_lang_options"] = False
-                        # Bot gives task explanation in English
                         exp, tts_str = explain_task_conversationally(active_task, language="English")
                         audio = generate_tts_audio(tts_str, "English")
                         st.session_state["intern_messages"].append({
@@ -506,7 +573,7 @@ elif role_type == "intern":
                         })
                         st.rerun()
                 with col_l2:
-                    if st.button("🇮🇳 தமிழ் (Tamil)", key="btn_lang_ta"):
+                    if st.button("🇮🇳 தமிழ் (Tamil)", key="btn_lang_ta", use_container_width=True):
                         st.session_state["intern_lang"] = "Tamil"
                         msg["show_lang_options"] = False
                         exp, tts_str = explain_task_conversationally(active_task, language="Tamil")
@@ -518,7 +585,7 @@ elif role_type == "intern":
                         })
                         st.rerun()
                 with col_l3:
-                    if st.button("🇮🇳 हिंदी (Hindi)", key="btn_lang_hi"):
+                    if st.button("🇮🇳 हिंदी (Hindi)", key="btn_lang_hi", use_container_width=True):
                         st.session_state["intern_lang"] = "Hindi"
                         msg["show_lang_options"] = False
                         exp, tts_str = explain_task_conversationally(active_task, language="Hindi")
@@ -530,40 +597,40 @@ elif role_type == "intern":
                         })
                         st.rerun()
 
-            # Schedule & Email Action Card (if review generated)
+            # Schedule & Email Action Card
             if msg.get("review_data"):
                 rd = msg["review_data"]
                 rev_id = rd["review_id"]
                 sched = get_schedule_for_review(rev_id)
                 with st.container(border=True):
-                    st.markdown("#### 📅 Next Review & Email Follow-up")
+                    st.markdown("#### 📅 Next Review Session & Notification")
                     if sched:
-                        st.markdown(f"**Scheduled Session:** {sched['review_date']} at {sched['review_time']} (Local Time)")
+                        st.markdown(f"**Scheduled Date & Time:** {sched['review_date']} at {sched['review_time']} (Local Time)")
                         st.caption(f"Meeting link: {sched.get('session_link') or 'Local Demo'}")
                     else:
-                        st.markdown(f"**Next Session:** Friday at 11:00 AM (Host Local Time)")
+                        st.markdown(f"**Follow-up Session:** Friday at 11:00 AM (Host Local Time)")
 
                     col_em1, col_em2 = st.columns(2)
                     with col_em1:
-                        if st.button("📨 Save Feedback Notification (Demo)", key=f"btn_sim_em_{idx}"):
+                        if st.button("📨 Save Feedback Notification (Demo)", key=f"btn_sim_em_{idx}", use_container_width=True):
                             res = schedule_and_notify(
                                 review_id=rev_id,
                                 review_date=str(date.today()),
                                 review_time="11:00",
                                 session_link="http://localhost:8501 (Local Session)",
-                                reviewer_message="Please follow the AI mentor suggestions before our meeting.",
+                                reviewer_message="Please implement the mentor corrections before our follow-up.",
                                 send_real_email=False
                             )
                             st.success("Feedback recorded with status: **SIMULATED — NOT SENT**.")
                     with col_em2:
                         smtp_ok = is_smtp_configured()
-                        if st.button("📤 Send Real Email via SMTP", key=f"btn_real_em_{idx}", disabled=not smtp_ok):
+                        if st.button("📤 Send Real Email via SMTP", key=f"btn_real_em_{idx}", disabled=not smtp_ok, use_container_width=True):
                             res = schedule_and_notify(
                                 review_id=rev_id,
                                 review_date=str(date.today()),
                                 review_time="11:00",
                                 session_link="http://localhost:8501 (Local Session)",
-                                reviewer_message="Please follow the AI mentor suggestions before our meeting.",
+                                reviewer_message="Please implement the mentor corrections before our follow-up.",
                                 send_real_email=True
                             )
                             if res["success"]:
@@ -571,9 +638,9 @@ elif role_type == "intern":
                             else:
                                 st.error(f"Failed to send: {res['message']}")
 
-    # Attachment & Voice submission drawer
+    # Aligned Attachment & Voice Submission Bar
     with st.expander("📎 Attach Submission Files or Speak", expanded=False):
-        c_sub1, c_sub2 = st.columns([2, 1])
+        c_sub1, c_sub2 = st.columns([3, 2])
         with c_sub1:
             uploaded_sub_file = st.file_uploader(
                 "Upload Code Files or ZIP Archive",
@@ -582,14 +649,14 @@ elif role_type == "intern":
             )
             col_s1, col_s2 = st.columns(2)
             with col_s1:
-                if st.button("📂 Attach Sample V1 (Partial)"):
+                if st.button("📂 Attach Sample V1 (Partial)", use_container_width=True):
                     sample_v1 = os.path.join(os.path.dirname(__file__), "sample_data", "candidate_submission_v1_partial.zip")
                     with open(sample_v1, "rb") as f:
                         st.session_state["cached_sub_bytes"] = f.read()
                         st.session_state["cached_sub_name"] = "candidate_submission_v1_partial.zip"
                     st.success("Attached Sample V1 (Partial Submission). Type a message or click Send!")
             with col_s2:
-                if st.button("📂 Attach Sample V2 (Completed)"):
+                if st.button("📂 Attach Sample V2 (Completed)", use_container_width=True):
                     sample_v2 = os.path.join(os.path.dirname(__file__), "sample_data", "candidate_submission_v2_completed.zip")
                     with open(sample_v2, "rb") as f:
                         st.session_state["cached_sub_bytes"] = f.read()
@@ -597,20 +664,17 @@ elif role_type == "intern":
                     st.success("Attached Sample V2 (Completed Submission). Type a message or click Send!")
 
         with c_sub2:
-            st.caption("🎙️ Voice Question / Instruction")
             intern_audio = st.audio_input("Speak to AI Mentor", key="intern_audio_mic")
 
-    # Intern Chat Input Box
+    # Bottom Chat Composer
     intern_prompt = st.chat_input("Ask your mentor a question or submit a GitHub URL / code...")
 
-    # Handle voice prompt if recorded
     if intern_audio is not None and not intern_prompt:
         intern_prompt = "Can you explain the main requirements for my task?"
 
     if intern_prompt:
         current_lang = st.session_state.get("intern_lang") or "English"
 
-        # Check if user is choosing language via text
         p_lower = intern_prompt.strip().lower()
         if p_lower in ["tamil", "தமிழ்", "tamizh"]:
             st.session_state["intern_lang"] = "Tamil"
@@ -652,7 +716,6 @@ elif role_type == "intern":
         # Regular user message
         st.session_state["intern_messages"].append({"role": "user", "content": intern_prompt, "audio": None})
 
-        # Check if submission is attached (file or GitHub URL)
         sub_bytes = None
         sub_name = None
         if uploaded_sub_file:
@@ -666,7 +729,6 @@ elif role_type == "intern":
         is_github_url = "github.com/" in intern_prompt.lower()
 
         if sub_bytes or is_github_url:
-            # Process candidate submission & evaluate
             with st.spinner("AI Mentor is reviewing your submission against company requirements..."):
                 gh_url = intern_prompt.strip() if is_github_url else None
                 eval_res = process_submission_and_evaluate(
@@ -725,8 +787,7 @@ elif role_type == "intern":
                     st.rerun()
 
         else:
-            # Answering Intern's Question conversationally
-            with st.spinner("AI Mentor is typing..."):
+            with st.spinner("AI Mentor is thinking..."):
                 answer, tts_str = answer_intern_question(
                     question=intern_prompt,
                     task=active_task,

@@ -27,6 +27,7 @@ from src.database import (
 from src.document_parser import parse_document, parse_spreadsheet
 from src.ai_review import get_gemini_client, analyze_submission
 from src.review_service import process_submission_and_evaluate, schedule_and_notify
+from src.config import get_secondary_gemini_key, get_openai_key, get_openai_model
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,47 @@ def generate_tts_audio(text: str, language: str = "English") -> Optional[bytes]:
         return None
 
 
+def _call_llm_text(prompt: str) -> Optional[str]:
+    """Query primary Gemini, secondary Gemini, or OpenAI with bounded retry."""
+    # 1. Primary Gemini
+    _, model = get_gemini_client(use_secondary=False)
+    if model is not None:
+        try:
+            resp = model.generate_content(prompt)
+            if resp and resp.text:
+                return resp.text.strip()
+        except Exception as e:
+            logger.warning(f"Primary Gemini call failed: {e}")
+
+    # 2. Secondary Gemini (if configured)
+    if get_secondary_gemini_key():
+        _, sec_model = get_gemini_client(use_secondary=True)
+        if sec_model is not None:
+            try:
+                resp = sec_model.generate_content(prompt)
+                if resp and resp.text:
+                    return resp.text.strip()
+            except Exception as e:
+                logger.warning(f"Secondary Gemini call failed: {e}")
+
+    # 3. OpenAI (if configured)
+    openai_key = get_openai_key()
+    if openai_key:
+        try:
+            import openai
+            client = openai.OpenAI(api_key=openai_key)
+            resp = client.chat.completions.create(
+                model=get_openai_model(),
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3
+            )
+            return resp.choices[0].message.content.strip()
+        except Exception as e:
+            logger.warning(f"OpenAI call failed: {e}")
+
+    return None
+
+
 def explain_task_conversationally(
     task: Dict[str, Any],
     language: str = "English"
@@ -100,11 +142,9 @@ def explain_task_conversationally(
     """
     title = task.get("title", "Internship Task")
     req_text = task.get("requirements_text", "")
-    genai_module, model = get_gemini_client()
 
-    if model is not None and req_text:
-        try:
-            prompt = f"""
+    if req_text:
+        prompt = f"""
 You are a warm, supportive Senior Engineering Mentor explaining an intern's assigned task in a conversational, engaging, friendly tone.
 
 Task Title: {title}
@@ -119,12 +159,10 @@ Format with neat bullet points:
 3. Validation & quality tips
 Keep it under 180 words. Do not use robotic jargon.
 """
-            resp = model.generate_content(prompt)
-            explanation = resp.text.strip()
+        explanation = _call_llm_text(prompt)
+        if explanation:
             short_tts = f"Here is what you are building for {title}. Check the key requirements and ask me anything."
             return explanation, short_tts
-        except Exception as e:
-            logger.warning(f"Gemini conversational task explanation fallback: {e}")
 
     # Fallback explanation
     if language == "Tamil":
@@ -170,14 +208,11 @@ def answer_intern_question(
     """
     Answer intern's technical question conversationally based on requirements.
     """
-    genai_module, model = get_gemini_client()
     req_text = task.get("requirements_text", "")
     title = task.get("title", "")
 
-    if model is not None:
-        try:
-            history_context = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in chat_history[-6:]])
-            prompt = f"""
+    history_context = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in chat_history[-6:]])
+    prompt = f"""
 You are an encouraging, experienced Senior AI Mentor helping an intern with their task: '{title}'.
 Requirements context:
 {req_text[:2500]}
@@ -192,11 +227,9 @@ Answer the intern warmly, pedagogically, and concisely in {language}.
 Provide helpful hints, code architecture tips, or clarification without doing all the work for them.
 Keep it under 150 words.
 """
-            resp = model.generate_content(prompt)
-            answer = resp.text.strip()
-            return answer, answer[:120]
-        except Exception as e:
-            logger.warning(f"Gemini Q&A fallback: {e}")
+    answer = _call_llm_text(prompt)
+    if answer:
+        return answer, answer[:120]
 
     # Fallback answer based on keywords
     q_lower = question.lower()

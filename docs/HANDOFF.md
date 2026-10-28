@@ -29,10 +29,11 @@ a:/ai_assistant/
 ├── CLAUDE.md                  # Claude Code session instructions
 ├── AGENTS.md                  # Tool-neutral instructions for coding agents
 ├── src/
+│   ├── config.py              # Safe credentials detection & multi-provider mapping
 │   ├── database.py            # SQLite schema, tables, and CRUD operations
 │   ├── document_parser.py     # Resilient parser for PDF, DOCX, TXT, MD, XLSX, CSV
 │   ├── submission_reader.py   # ZIP extraction, file caps, public GitHub fetcher
-│   ├── ai_review.py           # Gemini evaluation & Multilingual Fallback Engine
+│   ├── ai_review.py           # Multi-provider evaluation & Fallback Engine
 │   ├── mentor_chat.py         # Conversational mentor Q&A, voice audio, HR assignments
 │   ├── review_service.py      # Workflow orchestration for tasks, reviews, and emails
 │   └── email_service.py       # Plain-text/HTML templating, SMTP, and simulated logging
@@ -46,6 +47,7 @@ a:/ai_assistant/
 │   ├── candidate_submission_v2_completed.zip # Revision 2 demo archive
 │   └── generate_samples.py       # Data generator utility
 ├── tests/
+│   ├── test_config.py            # Safe credentials detection tests (3 tests)
 │   ├── test_document_parser.py   # Document parsing test suite (6 tests)
 │   ├── test_mentor_chat.py       # Mentor chat, voice & spreadsheet tests (6 tests)
 │   ├── test_submission_reader.py # Submission ingestion test suite (4 tests)
@@ -69,7 +71,7 @@ python -m pytest tests/ -v
 ```
 **Output**:
 ```text
-============================= 27 passed in 5.25s ==============================
+============================= 30 passed in 113.92s =============================
 ```
 tests/test_ai_review.py::test_rule_based_review_structure PASSED         [  4%]
 tests/test_ai_review.py::test_multilingual_rule_based_reviews PASSED     [  9%]

@@ -45,20 +45,29 @@ FALLBACK_TRANSLATIONS = {
 }
 
 
-def get_gemini_client():
-    """Attempt to import and configure google.generativeai if API key is present."""
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+from src.config import (
+    get_primary_gemini_key,
+    get_secondary_gemini_key,
+    get_openai_key,
+    get_gemini_model,
+    get_openai_model
+)
+
+
+def get_gemini_client(use_secondary: bool = False):
+    """Attempt to import and configure google.generativeai with primary or secondary key."""
+    api_key = get_secondary_gemini_key() if use_secondary else get_primary_gemini_key()
     if not api_key:
         return None, None
 
     try:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
-        model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash").strip()
+        model_name = get_gemini_model()
         model = genai.GenerativeModel(model_name)
         return genai, model
     except Exception as e:
-        logger.warning(f"Failed to initialize Gemini client: {e}")
+        logger.warning(f"Failed to initialize Gemini client ({'secondary' if use_secondary else 'primary'}): {e}")
         return None, None
 
 
@@ -72,14 +81,19 @@ def analyze_submission(
 ) -> Dict[str, Any]:
     """
     Main entry point for comparing candidate submission against company requirements.
-    Attempts Gemini AI review first; falls back to rule-based engine on failure or missing API key.
+    Hierarchy:
+    1. Primary Gemini Key
+    2. Secondary Gemini Key (if configured)
+    3. OpenAI Key (if configured)
+    4. Deterministic Rule-Based Fallback
     """
     valid_language = language if language in ["English", "Tamil", "Hindi"] else "English"
-    genai_module, model = get_gemini_client()
 
+    # 1. Try Primary Gemini
+    _, model = get_gemini_client(use_secondary=False)
     if model is not None:
         try:
-            review_result = _run_gemini_review(
+            res = _run_gemini_review(
                 model=model,
                 requirements=task_requirements,
                 submission_text=candidate_submission_text,
@@ -88,14 +102,50 @@ def analyze_submission(
                 files_summary=files_summary or [],
                 language=valid_language
             )
-            if review_result.get("success"):
-                return review_result
-            else:
-                logger.warning(f"Gemini review returned failure: {review_result.get('error')}. Using fallback.")
+            if res.get("success"):
+                return res
         except Exception as e:
-            logger.warning(f"Exception calling Gemini: {e}. Falling back to rule-based comparison.")
+            logger.warning(f"Primary Gemini review attempt failed: {e}")
 
-    # Rule-based fallback
+    # 2. Try Secondary Gemini (if configured)
+    if get_secondary_gemini_key():
+        _, sec_model = get_gemini_client(use_secondary=True)
+        if sec_model is not None:
+            try:
+                res = _run_gemini_review(
+                    model=sec_model,
+                    requirements=task_requirements,
+                    submission_text=candidate_submission_text,
+                    notes=candidate_notes,
+                    known_issues=known_issues,
+                    files_summary=files_summary or [],
+                    language=valid_language
+                )
+                if res.get("success"):
+                    res["model_used"] = f"{get_gemini_model()} (Secondary)"
+                    return res
+            except Exception as e:
+                logger.warning(f"Secondary Gemini review attempt failed: {e}")
+
+    # 3. Try OpenAI (if configured)
+    openai_key = get_openai_key()
+    if openai_key:
+        try:
+            res = _run_openai_review(
+                api_key=openai_key,
+                requirements=task_requirements,
+                submission_text=candidate_submission_text,
+                notes=candidate_notes,
+                known_issues=known_issues,
+                files_summary=files_summary or [],
+                language=valid_language
+            )
+            if res.get("success"):
+                return res
+        except Exception as e:
+            logger.warning(f"OpenAI review attempt failed: {e}")
+
+    # 4. Deterministic Rule-Based Fallback
     return _run_rule_based_review(
         requirements=task_requirements,
         submission_text=candidate_submission_text,
@@ -104,6 +154,102 @@ def analyze_submission(
         files_summary=files_summary or [],
         language=valid_language
     )
+
+
+def _run_openai_review(
+    api_key: str,
+    requirements: str,
+    submission_text: str,
+    notes: str,
+    known_issues: str,
+    files_summary: List[Dict[str, Any]],
+    language: str
+) -> Dict[str, Any]:
+    """Execute AI review using OpenAI chat completions."""
+    import openai
+
+    client = openai.OpenAI(api_key=api_key)
+    model_name = get_openai_model()
+
+    files_list_str = "\n".join([f"- {f.get('path', 'unknown')} ({f.get('size', 0)} bytes)" for f in files_summary])
+
+    prompt = f"""
+You are an expert Senior Technical Reviewer evaluating an intern's project submission against official company requirements.
+
+CRITICAL INSTRUCTIONS:
+1. Ground truth: Evaluate ONLY against official company requirements below.
+2. Accuracy: Verify actual code and text. Do not mark 'Met' just because a filename exists.
+3. Language: All explanations, summaries, bugs, corrections, and checklist items MUST be in {language}.
+4. Return ONLY valid JSON adhering strictly to the schema below without markdown fences.
+
+Schema:
+{{
+  "overall_status": "Completed" | "Needs Changes" | "Incomplete",
+  "overall_score": <int 0-100>,
+  "summary": "<summary in {language}>",
+  "requirements_analysis": [
+    {{
+      "requirement": "<title>",
+      "status": "Met" | "Partially Met" | "Missing",
+      "evidence": "<code snippet or 'No evidence found'>",
+      "explanation": "<explanation in {language}>"
+    }}
+  ],
+  "strengths": ["<strength in {language}>"],
+  "bugs_and_issues": ["<bug in {language}>"],
+  "missing_components": ["<missing component in {language}>"],
+  "actionable_corrections": ["<correction in {language}>"],
+  "prioritized_checklist": ["<checklist item in {language}>"],
+  "limitations": ["<limitation in {language}>"]
+}}
+
+REQUIREMENTS:
+{requirements[:10000]}
+
+SUBMITTED FILES:
+{files_list_str[:3000]}
+
+SUBMITTED CODE:
+{submission_text[:40000]}
+"""
+
+    resp = client.chat.completions.create(
+        model=model_name,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2
+    )
+    raw_text = resp.choices[0].message.content.strip()
+
+    if raw_text.startswith("```json"):
+        raw_text = raw_text[7:]
+    elif raw_text.startswith("```"):
+        raw_text = raw_text[3:]
+    if raw_text.endswith("```"):
+        raw_text = raw_text[:-3]
+    raw_text = raw_text.strip()
+
+    data = json.loads(raw_text)
+    overall_status = data.get("overall_status", "Needs Changes")
+    if overall_status not in ["Completed", "Needs Changes", "Incomplete"]:
+        overall_status = "Needs Changes"
+
+    try:
+        score = int(data.get("overall_score", 50))
+        score = max(0, min(100, score))
+    except Exception:
+        score = 50
+
+    return {
+        "success": True,
+        "is_ai_generated": True,
+        "model_used": f"OpenAI ({model_name})",
+        "language": language,
+        "overall_status": overall_status,
+        "overall_score": score,
+        "summary": data.get("summary", "OpenAI evaluation completed."),
+        "structured_data": data,
+        "raw_response": raw_text
+    }
 
 
 def _run_gemini_review(
