@@ -14,7 +14,7 @@
 ## Build and Test Commands
 - Run tests: `python -m pytest tests/ -v`
 - Run single test file: `python -m pytest tests/test_database.py -v`
-- Launch app: `streamlit run app.py`
+- Launch app: `python -m streamlit run app.py`
 
 ## Coding Guidelines
 - Maintain zero execution of untrusted candidate code.

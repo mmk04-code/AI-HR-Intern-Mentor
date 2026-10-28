@@ -126,8 +126,10 @@ SMTP_USE_TLS=true
 ### 4. Running the Web Application
 Launch the local Streamlit server:
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
+*(Or `streamlit run app.py` if python scripts are on your PATH)*
+
 Open your browser to: **`http://localhost:8501`**
 
 ---

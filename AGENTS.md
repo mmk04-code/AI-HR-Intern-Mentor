@@ -21,7 +21,7 @@ python -m pytest tests/ -v
 ## Running the Web Application
 Start Streamlit on default local port 8501:
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
 ## Core Behavioral Constraints
