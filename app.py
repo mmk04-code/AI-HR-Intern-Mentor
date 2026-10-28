@@ -55,7 +55,6 @@ from src.mentor_chat import (
     generate_tts_audio,
     LANG_GREETINGS
 )
-from src.ai_providers import AIProviderService
 from src.offline_knowledge import get_offline_knowledge_service
 from src.review_service import process_submission_and_evaluate, schedule_and_notify
 from src.email_service import is_smtp_configured
@@ -97,26 +96,20 @@ st.markdown("""
         color: #1e293b;
     }
 
-    /* Minimalist Top App Bar */
-    .top-navbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0 16px 0;
-        border-bottom: 1px solid #e2e8f0;
-        margin-bottom: 16px;
-    }
+    /* Compact, aligned top bar */
     .brand-title {
         font-size: 1.3rem;
         font-weight: 700;
-        color: #0f172a;
+        color: #f8fafc;
         display: flex;
         align-items: center;
         gap: 8px;
+        white-space: nowrap;
     }
     .user-pill {
-        display: inline-flex;
+        display: flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
         background: #f1f5f9;
         color: #334155;
@@ -125,7 +118,9 @@ st.markdown("""
         padding: 6px 14px;
         border-radius: 9999px;
         border: 1px solid #e2e8f0;
+        white-space: nowrap;
     }
+    .nav-divider { margin: 10px 0 16px; border-color: #334155; }
 
     /* Assignment context banner */
     .task-banner {
@@ -360,61 +355,19 @@ if not st.session_state["role"]:
 
 
 # ---------------------------------------------------------------------
-# TOP NAVBAR (Aligned with Conversation Column)
+# TOP NAVBAR
 # ---------------------------------------------------------------------
 user_data = st.session_state["current_user"]
 role_type = st.session_state["role"]
 
-nav_col1, nav_col2, nav_col3 = st.columns([4, 1.4, 1])
+nav_col1, nav_col2, nav_col3 = st.columns([4, 2, 1], gap="small", vertical_alignment="center")
 with nav_col1:
-    status_summary = AIProviderService.get_status_summary()
-    gemini_configured = status_summary["primary_gemini_configured"] or status_summary["secondary_gemini_configured"]
-    active_m = status_summary['gemini_model'] if gemini_configured else status_summary['openai_model']
-    badge_color = "#166534" if status_summary["is_online"] else "#92400e"
-    badge_bg = "#dcfce7" if status_summary["is_online"] else "#fef3c7"
-    badge_border = "#bbf7d0" if status_summary["is_online"] else "#fde68a"
-    badge_text = (
-        f"🟢 AI: Online ({active_m})"
-        if status_summary["is_online"]
-        else "🟠 AI: Offline (Local Reference Mode)"
-    )
-
-    st.markdown(f"""
-    <div class="top-navbar">
-        <div class="brand-title">
-            <span>🎓</span> AI Mentor
-            <span style="font-size: 0.75rem; font-weight: 600; background: {badge_bg}; color: {badge_color}; border: 1px solid {badge_border}; padding: 3px 10px; border-radius: 9999px; margin-left: 10px;">
-                {badge_text}
-            </span>
-        </div>
-        <div class="user-pill">
-            <span>{'🏢' if role_type == 'hr' else '👤'}</span> {user_data.get('name', 'User')}
-            <span style="color: #94a3b8;">•</span>
-            <span style="color: #64748b;">{'HR Coordinator' if role_type == 'hr' else user_data.get('role', 'Intern')}</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div class="brand-title"><span>🎓</span><span>AI Mentor</span></div>', unsafe_allow_html=True)
 
 with nav_col2:
-    with st.popover("⚙️ Diagnostics", use_container_width=True):
-        st.markdown("#### ⚙️ AI Settings & Diagnostics")
-        st.caption(f"Status: **{status_summary['status_label']}**")
-        st.caption(f"Gemini: `{status_summary['gemini_model']}` | OpenAI: `{status_summary['openai_model']}`")
-        st.markdown("---")
-        if st.button("🧪 Test Gemini connection", key="diag_test_gemini", use_container_width=True):
-            ok, msg = test_gemini_connection()
-            if ok:
-                st.success(msg)
-            else:
-                st.error(msg)
-        if st.button("🧪 Test OpenAI connection", key="diag_test_openai", use_container_width=True):
-            ok, msg = test_openai_connection()
-            if ok:
-                st.success(msg)
-            else:
-                st.error(msg)
-        st.markdown("---")
-        st.caption("Offline Knowledge Base: 7 JSON files, 42 verified reference items loaded.")
+    user_label = "HR Coordinator" if role_type == "hr" else user_data.get("name", "Intern")
+    user_icon = "🏢" if role_type == "hr" else "👤"
+    st.markdown(f'<div class="user-pill"><span>{user_icon}</span><span>{user_label}</span></div>', unsafe_allow_html=True)
 
 with nav_col3:
     if st.button("Sign Out", key="logout_btn", use_container_width=True):
@@ -426,6 +379,8 @@ with nav_col3:
         st.session_state["attached_files"] = []
         st.session_state["voice_data"] = None
         st.rerun()
+
+st.markdown('<hr class="nav-divider">', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------
@@ -552,6 +507,15 @@ if role_type == "hr":
                     with open(sample_req, "rb") as f:
                         st.session_state["attached_files"].append({"name": "company_requirements.md", "bytes": f.read(), "type": "document"})
                     st.rerun()
+
+                st.markdown("---")
+                with st.expander("AI connection tests", expanded=False):
+                    if st.button("Test Gemini connection", key="diag_test_gemini", use_container_width=True):
+                        ok, message = test_gemini_connection()
+                        st.success(message) if ok else st.error(message)
+                    if st.button("Test OpenAI connection", key="diag_test_openai", use_container_width=True):
+                        ok, message = test_openai_connection()
+                        st.success(message) if ok else st.error(message)
 
         with col_mic:
             with st.popover("🎤", help="Voice Input", use_container_width=True):

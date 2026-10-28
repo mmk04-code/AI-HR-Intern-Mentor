@@ -3,6 +3,9 @@
 *.env
 .env.*
 !.env.example
+.env/
+api_key.txt
+email.txt
 
 # Python bytecode & cache
 __pycache__/
@@ -21,7 +24,6 @@ temp/
 # Virtual environment
 venv/
 .venv/
-.env/
 ENV/
 
 # IDE & Editor files
