@@ -1,0 +1,70 @@
+{
+  "topic": "faq",
+  "description": "Frequently Asked Questions about portal usage, submission procedures, AI mentor interaction, review status, and offline functionality.",
+  "items": [
+    {
+      "id": "faq-001",
+      "topic": "faq",
+      "question": "How do I submit my internship task code or documents?",
+      "answer": "Go to the intern view, expand the 'Attach Submission Files or Speak' section, choose your code file or ZIP archive (or paste a public GitHub repository link in the chat composer), and click Send. The assistant will parse your files and initiate a review against the assigned requirements.",
+      "keywords": ["submit", "submission", "upload", "how to submit", "zip", "github url", "task submission"],
+      "difficulty": "beginner",
+      "source": "Internship Assistant User Guide"
+    },
+    {
+      "id": "faq-002",
+      "topic": "faq",
+      "question": "What does 'Offline Mode (Local Reference Mode)' mean in the AI Mentor?",
+      "answer": "When no live AI API key (Gemini or OpenAI) is configured or when the internet/API is unavailable, the application runs in Offline Mode. In this mode, the assistant searches a local verified reference dataset to answer questions. It explicitly labels local references and never fabricates live AI answers.",
+      "keywords": ["offline mode", "local reference", "fallback", "ai status", "offline dataset", "rule-based"],
+      "difficulty": "beginner",
+      "source": "Internship Assistant Architecture Manual"
+    },
+    {
+      "id": "faq-003",
+      "topic": "faq",
+      "question": "How do revisions work if my submission needs changes?",
+      "answer": "Every submission creates an incremental audit revision (Revision 1, Revision 2, etc.). If your review indicates 'Needs Changes', review the actionable suggestions, modify your code, and submit a new ZIP or file. Your previous revisions and feedback remain preserved in the audit history.",
+      "keywords": ["revisions", "needs changes", "audit trail", "resubmit", "history", "versioning"],
+      "difficulty": "beginner",
+      "source": "Internship Assistant Review Flow"
+    },
+    {
+      "id": "faq-004",
+      "topic": "faq",
+      "question": "What language options are supported by the AI Mentor?",
+      "answer": "The AI Mentor provides multilingual conversational support in English, தமிழ் (Tamil), and हिंदी (Hindi). You can switch your preferred language at any time using the quick selector buttons or by typing the language name into the chat.",
+      "keywords": ["language", "tamil", "hindi", "english", "multilingual", "localization", "தமிழ்", "हिंदी"],
+      "difficulty": "beginner",
+      "source": "Internship Assistant Localization Spec"
+    },
+    {
+      "id": "faq-005",
+      "topic": "faq",
+      "question": "Are candidate submissions executed or run on the server?",
+      "answer": "No. Under core system constraints, candidate code is never executed via exec(), eval(), subprocess, or direct imports. All review audits are performed through static analysis, AST inspection, structural validation, and LLM text evaluation to ensure complete sandbox security.",
+      "keywords": ["security", "static analysis", "no exec", "sandbox", "zero execution", "safe audit"],
+      "difficulty": "intermediate",
+      "source": "Internship Assistant Security Architecture"
+    },
+    {
+      "id": "faq-006",
+      "topic": "faq",
+      "question": "Why does the email button say 'SIMULATED — NOT SENT'?",
+      "answer": "When SMTP credentials are not configured in your .env configuration, the application safely operates in Simulated Email Mode. It logs the notification details and schedules the follow-up review session without attempting to send an external email, recording the status as 'SIMULATED — NOT SENT' in the audit database.",
+      "keywords": ["email", "smtp", "simulated", "notification", "schedule", "not sent"],
+      "difficulty": "beginner",
+      "source": "Internship Assistant Dispatch Service"
+    },
+    {
+      "id": "faq-007",
+      "topic": "faq",
+      "question": "How can an HR coordinator view intern submission progress?",
+      "answer": "An HR coordinator can log into the HR view and ask the assistant questions like 'What is the status of assigned interns?' or 'Show submission progress'. The coordinator view aggregates real-time completion status, latest revision scores, and assigned modules from the SQLite database.",
+      "keywords": ["hr", "coordinator", "progress", "roster", "status", "dashboard", "scores"],
+      "difficulty": "beginner",
+      "source": "HR Coordinator Operations Manual"
+    }
+  ]
+}
+

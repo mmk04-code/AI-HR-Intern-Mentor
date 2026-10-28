@@ -5,7 +5,6 @@ using Google Gemini API (when configured) or a robust Rule-Based Fallback Engine
 Supports English, Tamil, and Hindi output explanations.
 """
 
-import os
 import re
 import json
 import logging
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 # Fallback translation templates
 FALLBACK_TRANSLATIONS = {
     "English": {
-        "engine_label": "Rule-Based Demo Results (Fallback — Gemini API not configured or unavailable)",
+        "engine_label": "Rule-Based Demo Results (Fallback — configured LLM APIs unavailable)",
         "summary_intro": "Automated structural audit comparing candidate files against company task requirements.",
         "met_desc": "Requirement verified in submission files.",
         "partial_desc": "Partial implementation found; key aspects missing or incomplete.",
@@ -25,7 +24,7 @@ FALLBACK_TRANSLATIONS = {
         "checklist_prefix": "Address missing requirement: ",
     },
     "Tamil": {
-        "engine_label": "விதிமுறை அடிப்படையிலான மாதிரி முடிவுகள் (Fallback — Gemini API இணைக்கப்படவில்லை)",
+        "engine_label": "விதிமுறை அடிப்படையிலான மாதிரி முடிவுகள் (Fallback — LLM API இணைக்கப்படவில்லை அல்லது கிடைக்கவில்லை)",
         "summary_intro": "நிறுவனத்தின் தேவைகளுடன் சமர்ப்பிக்கப்பட்ட கோப்புகளை ஒப்பிடும் தானியங்கி கட்டமைப்பு ஆய்வு.",
         "met_desc": "தேவை சமர்ப்பிப்பில் பூர்த்தி செய்யப்பட்டுள்ளது சரிபார்க்கப்பட்டது.",
         "partial_desc": "பகுதி செயலாக்கம் காணப்படுகிறது; முக்கிய கூறுகள் விடுபட்டுள்ளன.",
@@ -34,7 +33,7 @@ FALLBACK_TRANSLATIONS = {
         "checklist_prefix": "விடுபட்ட தேவையை சரிசெய்க: ",
     },
     "Hindi": {
-        "engine_label": "नियम-आधारित डेमो परिणाम (Fallback — Gemini API कॉन्फ़िगर नहीं है या अनुपलब्ध है)",
+        "engine_label": "नियम-आधारित डेमो परिणाम (Fallback — LLM API कॉन्फ़िगर नहीं है या अनुपलब्ध है)",
         "summary_intro": "कंपनी की आवश्यकताओं के साथ उम्मीदवार की फाइलों की तुलना करने वाला स्वचालित संरचनात्मक ऑडिट।",
         "met_desc": "प्रस्तुत फाइलों में आवश्यकता सत्यापित की गई।",
         "partial_desc": "आंशिक कार्यान्वयन पाया गया; मुख्य भाग अनुपस्थित या अधूरे हैं।",
@@ -55,20 +54,33 @@ from src.config import (
 
 
 def get_gemini_client(use_secondary: bool = False):
-    """Attempt to import and configure google.generativeai with primary or secondary key."""
+    """Build a model adapter using Google's supported GenAI SDK."""
     api_key = get_secondary_gemini_key() if use_secondary else get_primary_gemini_key()
     if not api_key:
         return None, None
 
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
+        from google import genai
         model_name = get_gemini_model()
-        model = genai.GenerativeModel(model_name)
-        return genai, model
+        client = genai.Client(api_key=api_key)
+        return genai, _GeminiModel(client, model_name)
     except Exception as e:
-        logger.warning(f"Failed to initialize Gemini client ({'secondary' if use_secondary else 'primary'}): {e}")
+        logger.warning("Failed to initialize Gemini client (%s): %s", "secondary" if use_secondary else "primary", type(e).__name__)
         return None, None
+
+
+class _GeminiModel:
+    """Keep a small generate_content interface shared by review and mentor flows."""
+
+    def __init__(self, client: Any, model_name: str):
+        self.client = client
+        self.model_name = model_name
+
+    def generate_content(self, prompt: str):
+        return self.client.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+        )
 
 
 def analyze_submission(
@@ -105,7 +117,7 @@ def analyze_submission(
             if res.get("success"):
                 return res
         except Exception as e:
-            logger.warning(f"Primary Gemini review attempt failed: {e}")
+            logger.warning("Primary Gemini review attempt failed (%s).", type(e).__name__)
 
     # 2. Try Secondary Gemini (if configured)
     if get_secondary_gemini_key():
@@ -125,7 +137,7 @@ def analyze_submission(
                     res["model_used"] = f"{get_gemini_model()} (Secondary)"
                     return res
             except Exception as e:
-                logger.warning(f"Secondary Gemini review attempt failed: {e}")
+                logger.warning("Secondary Gemini review attempt failed (%s).", type(e).__name__)
 
     # 3. Try OpenAI (if configured)
     openai_key = get_openai_key()
@@ -143,7 +155,7 @@ def analyze_submission(
             if res.get("success"):
                 return res
         except Exception as e:
-            logger.warning(f"OpenAI review attempt failed: {e}")
+            logger.warning("OpenAI review attempt failed (%s).", type(e).__name__)
 
     # 4. Deterministic Rule-Based Fallback
     return _run_rule_based_review(
@@ -334,8 +346,8 @@ Submitted Files:
     try:
         data = json.loads(raw_text)
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse Gemini JSON output: {e}\nRaw output: {raw_text[:500]}")
-        return {"success": False, "error": f"Invalid JSON response from AI: {str(e)}"}
+        logger.error("Failed to parse Gemini JSON output (%s).", type(e).__name__)
+        return {"success": False, "error": "Invalid JSON response from AI."}
 
     # Validate essential fields
     overall_status = data.get("overall_status", "Needs Changes")
@@ -351,7 +363,7 @@ Submitted Files:
     return {
         "success": True,
         "is_ai_generated": True,
-        "model_used": os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
+        "model_used": f"Gemini ({get_gemini_model()})",
         "language": language,
         "overall_status": overall_status,
         "overall_score": score,
@@ -488,8 +500,8 @@ def _run_rule_based_review(
 
     limitations = [
         i18n["unverified_note"],
-        "Rule-based fallback used because GEMINI_API_KEY is not configured or network access was unavailable.",
-        "To obtain full natural-language code reasoning, configure GEMINI_API_KEY in .env."
+        "Rule-based fallback used because configured LLM APIs are unavailable or no API key is configured.",
+        "To obtain full natural-language code reasoning, configure GEMINI_API_KEY or OPENAI_API_KEY in .env."
     ]
 
     structured_data = {

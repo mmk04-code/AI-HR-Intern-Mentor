@@ -11,6 +11,9 @@ from src.config import (
     get_openai_key,
     get_gemini_model,
     get_openai_model,
+    _clean_credential,
+    get_email_credentials,
+    has_email_configured,
     has_gemini_configured,
     has_openai_configured
 )
@@ -49,3 +52,29 @@ def test_alias_mapping(monkeypatch):
     monkeypatch.setenv("Open_AI_KEY", "test-openai-key")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     assert get_openai_key() == "test-openai-key"
+
+    monkeypatch.setenv("OPEN_AI_API_KEY", "test-openai-api-key")
+    monkeypatch.delenv("Open_AI_KEY", raising=False)
+    assert get_openai_key() == "test-openai-api-key"
+
+
+def test_openai_model_can_be_configured(monkeypatch):
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-test-model")
+    assert get_openai_model() == "gpt-test-model"
+
+
+def test_template_credentials_are_treated_as_missing():
+    assert _clean_credential("GEMINI_API_KEY") is None
+    assert _clean_credential("your_gemini_api_key_here") is None
+    assert _clean_credential("gmail_password") is None
+
+
+def test_smtp_user_alias_and_invalid_port(monkeypatch):
+    monkeypatch.setenv("SMTP_HOST", "smtp.gmail.com")
+    monkeypatch.setenv("SMTP_USER", "coordinator@example.com")
+    monkeypatch.setenv("SMTP_PASSWORD", "actual-app-password")
+    monkeypatch.setenv("SMTP_PORT", "bad-port")
+    creds = get_email_credentials()
+    assert creds["username"] == "coordinator@example.com"
+    assert creds["port"] == 0
+    assert has_email_configured() is False

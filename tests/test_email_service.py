@@ -60,3 +60,44 @@ def test_simulated_email_dispatch_never_claims_sent(test_db):
     assert result["mode"] == "SIMULATED"
     assert result["status"] == "SIMULATED — NOT SENT"
     assert "SENT" != result["status"]
+
+
+def test_smtp_auth_failure_is_recorded_as_simulated(monkeypatch, test_db):
+    import smtplib
+    import src.email_service as email_service
+
+    candidate_id = create_candidate("Test Candidate", "test@example.com", "Intern", "Batch", db_path=test_db)
+    task_id = create_task(candidate_id, "Module 1", "Demo", "Desc", "Reqs", "req.md", db_path=test_db)
+    submission_id = create_submission(task_id, "upload", raw_content="text", db_path=test_db)
+    review_id = create_review(submission_id, "Needs Changes", 50, False, "Fallback", "English", {}, "Summary", db_path=test_db)
+
+    class RejectingSMTP:
+        def __init__(self, *args, **kwargs):
+            pass
+        def starttls(self):
+            pass
+        def login(self, user, password):
+            raise smtplib.SMTPAuthenticationError(535, b"invalid credentials")
+        def sendmail(self, *args, **kwargs):
+            raise AssertionError("Email must not be sent after authentication failure")
+        def quit(self):
+            pass
+
+    monkeypatch.setenv("SMTP_HOST", "smtp.example.com")
+    monkeypatch.setenv("SMTP_PORT", "587")
+    monkeypatch.setenv("SMTP_USER", "coordinator@example.com")
+    monkeypatch.setenv("SMTP_PASSWORD", "test-password")
+    monkeypatch.setattr(email_service.smtplib, "SMTP", RejectingSMTP)
+
+    result = send_or_simulate_email(
+        review_id=review_id,
+        recipient_email="test@example.com",
+        subject="Test",
+        body_text="Preview only",
+        body_html="<p>Preview only</p>",
+        force_simulation=False,
+        db_path=test_db,
+    )
+
+    assert result["mode"] == "SIMULATED"
+    assert result["status"] == "SIMULATED — NOT SENT"

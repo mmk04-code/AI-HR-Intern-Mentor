@@ -1,33 +1,27 @@
 """
-Mentor Chat module for Internship Task Review Assistant.
-Provides conversational AI mentorship for interns (task explanation, Q&A, submission review)
-and conversational task assignment & progress tracking for HR coordinators.
-Supports English, Tamil, and Hindi natural dialogue with TTS voice generation.
+Conversational AI Mentor & Audio Feedback Module.
+Provides interactive technical guidance, requirement walkthroughs, natural language HR actions,
+and speech synthesis with offline local knowledge retrieval and live AI integration.
 """
 
 import os
-import io
 import re
+import io
 import json
 import logging
 from typing import Dict, List, Any, Optional, Tuple
 from gtts import gTTS
 
-from src.database import (
-    get_task,
-    get_all_tasks,
-    get_candidates,
-    get_candidate,
-    get_submissions_for_task,
-    get_reviews_for_task,
-    get_schedule_for_review,
-    create_candidate,
-    create_task
+from src.config import (
+    get_primary_gemini_key,
+    get_secondary_gemini_key,
+    get_openai_key,
+    get_gemini_model,
+    get_openai_model
 )
-from src.document_parser import parse_document, parse_spreadsheet
-from src.ai_review import get_gemini_client, analyze_submission
-from src.review_service import process_submission_and_evaluate, schedule_and_notify
-from src.config import get_secondary_gemini_key, get_openai_key, get_openai_model
+from src.ai_providers import AIProviderService, GeminiProvider, OpenAIProvider
+from src.offline_knowledge import get_offline_knowledge_service
+from src.document_parser import parse_spreadsheet, parse_document
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +33,13 @@ LANG_CODES = {
 
 LANG_GREETINGS = {
     "English": {
-        "welcome": "Hello {name}! I'm your AI Mentor for your **{task_title}** ({module_name}) assignment. Which language would you prefer to converse in?",
+        "welcome": "Hello {name}! I am your AI Mentor for **{task_title}** ({module_name}). Which language would you like to speak in?",
         "options": ["English", "Tamil", "Hindi"],
-        "lang_confirm": "Great! We'll continue in **English**. Let me walk you through what you'll be building.",
-        "task_intro": "Here is an overview of your assigned task:\n\n{explanation}\n\nYou can ask me any technical questions, request hints, or attach your code / GitHub repo right here when you're ready for review!",
-        "tts_intro": "Welcome {name}! I am your AI Mentor. Here is your task: {summary_short}. Feel free to ask questions or submit your code when ready.",
-        "eval_intro": "I've reviewed your latest submission (Revision {rev_num}) against the official requirements!\n\n**Status:** {status} ({score}/100)\n\n**Strengths:**\n{strengths}\n\n**Things to fix:**\n{missing}\n\n**Next Steps:**\n{corrections}",
-        "tts_eval": "Your submission review is complete. Overall status is {status} with a score of {score} out of 100. Please check the feedback and submit your revision."
+        "lang_confirm": "Great! Let's continue in **English**. I will help explain your task, clarify doubts, and review your code.",
+        "task_intro": "Here is a breakdown of your task:\n\n{explanation}\n\nFeel free to ask questions or submit your code/ZIP when ready!",
+        "tts_intro": "Hello {name}! Here are your task details. Feel free to ask me anything about requirements or code.",
+        "eval_intro": "I've reviewed your submission (Revision {rev_num})!\n\n**Status:** {status} ({score}/100)\n\n**Strengths:**\n{strengths}\n\n**Needs Improvement:**\n{missing}\n\n**Next Steps:**\n{corrections}",
+        "tts_eval": "Your submission review is complete. Current status is {status} with a score of {score}. Please address the suggested revisions."
     },
     "Tamil": {
         "welcome": "வணக்கம் {name}! உங்கள் **{task_title}** ({module_name}) பணிக்கான AI வழிகாட்டி நான். எந்த மொழியில் உரையாட விரும்புகிறீர்கள்?",
@@ -78,7 +72,7 @@ def generate_tts_audio(text: str, language: str = "English") -> Optional[bytes]:
     try:
         lang_code = LANG_CODES.get(language, "en")
         clean_text = re.sub(r"[\*#_`~\[\]\(\)\<\>]", "", text)
-        clean_text = clean_text[:300].strip()  # Natural speech chunk
+        clean_text = clean_text[:300].strip()
         if not clean_text:
             return None
 
@@ -91,44 +85,19 @@ def generate_tts_audio(text: str, language: str = "English") -> Optional[bytes]:
         return None
 
 
+def _call_gemini_text(prompt: str) -> Optional[str]:
+    """Query Gemini only via AIProviderService."""
+    res = AIProviderService.generate_text(prompt, preferred_provider="gemini")
+    if res.get("success"):
+        return res.get("text")
+    return None
+
+
 def _call_llm_text(prompt: str) -> Optional[str]:
-    """Query primary Gemini, secondary Gemini, or OpenAI with bounded retry."""
-    # 1. Primary Gemini
-    _, model = get_gemini_client(use_secondary=False)
-    if model is not None:
-        try:
-            resp = model.generate_content(prompt)
-            if resp and resp.text:
-                return resp.text.strip()
-        except Exception as e:
-            logger.warning(f"Primary Gemini call failed: {e}")
-
-    # 2. Secondary Gemini (if configured)
-    if get_secondary_gemini_key():
-        _, sec_model = get_gemini_client(use_secondary=True)
-        if sec_model is not None:
-            try:
-                resp = sec_model.generate_content(prompt)
-                if resp and resp.text:
-                    return resp.text.strip()
-            except Exception as e:
-                logger.warning(f"Secondary Gemini call failed: {e}")
-
-    # 3. OpenAI (if configured)
-    openai_key = get_openai_key()
-    if openai_key:
-        try:
-            import openai
-            client = openai.OpenAI(api_key=openai_key)
-            resp = client.chat.completions.create(
-                model=get_openai_model(),
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3
-            )
-            return resp.choices[0].message.content.strip()
-        except Exception as e:
-            logger.warning(f"OpenAI call failed: {e}")
-
+    """Query available LLM providers (Gemini -> OpenAI) via AIProviderService."""
+    res = AIProviderService.generate_text(prompt, preferred_provider="auto")
+    if res.get("success"):
+        return res.get("text")
     return None
 
 
@@ -207,6 +176,8 @@ def answer_intern_question(
 ) -> Tuple[str, str]:
     """
     Answer intern's technical question conversationally based on requirements.
+    Uses live LLM if available; falls back to verified offline dataset.
+    Never claims an offline response was generated by Gemini or OpenAI.
     """
     req_text = task.get("requirements_text", "")
     title = task.get("title", "")
@@ -227,39 +198,147 @@ Answer the intern warmly, pedagogically, and concisely in {language}.
 Provide helpful hints, code architecture tips, or clarification without doing all the work for them.
 Keep it under 150 words.
 """
-    answer = _call_llm_text(prompt)
-    if answer:
-        return answer, answer[:120]
+    # 1. Try Live LLM
+    res = AIProviderService.generate_text(prompt, preferred_provider="auto")
+    if res.get("success"):
+        ans = res.get("text", "")
+        provider_name = res.get("provider", "AI Provider")
+        formatted = f"🤖 **{provider_name} Response:**\n\n{ans}"
+        return formatted, ans[:120]
 
-    # Fallback answer based on keywords
+    # 2. Task Context Rule Guidance
     q_lower = question.lower()
     if any(k in q_lower for k in ["validate", "validation", "title", "சரிபார்ப்பு", "सत्यापन"]):
         ans = (
             "For input validation: Make sure to check that the title string is present and has at least 5 characters. "
             "Return an HTTP 400 or 422 with a descriptive error message if invalid."
         )
-    elif any(k in q_lower for k in ["database", "model", "schema", "sqlite", "தரவுத்தளம்", "डेटाबेस"]):
+        return f"📖 **Task Specification Reference:**\n\n{ans}", ans[:100]
+
+    if any(k in q_lower for k in ["database", "model", "schema", "sqlite", "தரவுத்தளம்", "डेटाबेस"]):
         ans = (
             "For the database layer: Define models for User, Project, and TaskItem. "
             "Make sure foreign keys link TaskItem to Project and User, and add `created_at` timestamps for tracking."
         )
-    elif any(k in q_lower for k in ["test", "testing", "pytest", "unittest", "சோதனை", "परीक्षण"]):
+        return f"📖 **Task Specification Reference:**\n\n{ans}", ans[:100]
+
+    if any(k in q_lower for k in ["test", "testing", "pytest", "unittest", "சோதனை", "परीक्षण"]):
         ans = (
             "For testing: Write unit tests verifying both success cases (creating a valid task) "
             "and edge cases (submitting an empty title or short string to verify validation fails)."
         )
-    elif any(k in q_lower for k in ["error", "404", "exception", "பிழை", "त्रुटि"]):
-        ans = (
-            "For error handling: Ensure your API endpoints return clean JSON error responses "
-            "instead of crashing or returning raw stack traces."
-        )
-    else:
-        ans = (
-            f"That's a good question regarding {title}. Follow the company specifications: break your work down into "
-            "the database model, API routes, input validation, and unit tests. Let me know which component you'd like a hint on!"
-        )
+        return f"📖 **Task Specification Reference:**\n\n{ans}", ans[:100]
 
-    return ans, ans[:100]
+    # 3. Offline Knowledge Search
+    offline_service = get_offline_knowledge_service()
+    search_res = offline_service.search(question)
+
+    if search_res.get("found"):
+        docs = search_res.get("results", [])
+        top_doc = docs[0]
+        answer_body = top_doc.get("answer", "")
+        source_label = top_doc.get("source_file", "Local Reference")
+
+        ref_lines = [
+            f"📖 **Offline Reference Knowledge ({source_label}):**\n",
+            f"**{top_doc.get('question')}**\n",
+            f"{answer_body}"
+        ]
+        if "example" in top_doc:
+            ref_lines.append(f"\n```python\n{top_doc['example']}\n```")
+
+        if len(docs) > 1:
+            ref_lines.append("\n*Related reference topics:*")
+            for d in docs[1:]:
+                ref_lines.append(f"• **{d.get('question')}** ({d.get('source_file')})")
+
+        output_md = "\n".join(ref_lines)
+        return output_md, answer_body[:100]
+
+    # 4. Explicit No-Match message
+    no_match_text = offline_service.NO_MATCH_MESSAGE
+    return f"ℹ️ {no_match_text}", no_match_text[:100]
+
+
+def answer_hr_question(question: str) -> str:
+    """Answer general HR chat messages with the configured LLM and a clear fallback."""
+    prompt = f"""
+You are the conversational HR assistant for an internship task review application.
+Help the coordinator onboard interns, assign tasks, understand review progress,
+and use the app. Reply naturally and briefly, matching the language of the
+coordinator's message. Do not claim to have assigned tasks or accessed records;
+the app handles those actions separately.
+
+Coordinator message:
+{question[:2000]}
+"""
+    answer = _call_llm_text(prompt)
+    if answer:
+        return answer
+
+    message = question.strip().lower()
+    if any(word in message for word in ("வணக்கம்", "vanakkam")):
+        return "வணக்கம்! பயிற்சியாளர்களைச் சேர்க்கவும், பணிகளை ஒதுக்கவும், அல்லது சமர்ப்பிப்பு நிலையைப் பார்க்கவும் நான் உதவுகிறேன்."
+    if any(word in message for word in ("नमस्ते", "नमस्कार")):
+        return "नमस्ते! मैं इंटर्न जोड़ने, कार्य सौंपने या सबमिशन की स्थिति देखने में मदद कर सकता हूँ।"
+    if message in {"hi", "hello", "hey", "வணக்கம்", "नमस्ते", "नमस्कार"}:
+        return "Hello! I can help you add interns, assign tasks, or check submission progress. What would you like to do?"
+    return "I can help add interns, assign tasks, or check submission progress. Tell me what you need."
+
+
+def requested_roster_display_limit(prompt: str) -> Optional[int]:
+    """Return the requested count for explicit roster display requests."""
+    if not re.search(r"\b(show|display|list|fetch|view)\b|பெயர்|नाम", prompt, re.IGNORECASE):
+        return None
+    match = re.search(r"\b(?:first|top)\s+(\d+)\b|\b(?:first|top)\s+(\w+)\b", prompt, re.IGNORECASE)
+    if not match:
+        return None
+    value = match.group(1) or match.group(2)
+    try:
+        count = int(value)
+    except ValueError:
+        count = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+                 "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10}.get(value.lower())
+    return count if count and 1 <= count <= 100 else None
+
+
+def answer_roster_request(prompt: str, roster_records: List[Dict[str, Any]], limit: int) -> tuple[str, bool]:
+    """Ask Gemini to answer a roster query using only the requested rows."""
+    selected = roster_records[:limit]
+    names = [str(record.get("name", "")).strip() for record in selected]
+    names = [name for name in names if name]
+    prompt_for_model = f"""
+You are answering an HR coordinator's request about the attached intern roster.
+Use only the exact names in the supplied data. Do not invent, add, or infer names.
+The supplied data has already been limited to the requested first {limit} rows.
+Answer naturally in one short sentence, then list those names. Do not provide code.
+
+Coordinator request: {prompt[:1000]}
+Names available to answer with:
+{json.dumps(names, ensure_ascii=False)}
+"""
+    answer = _call_gemini_text(prompt_for_model)
+    if answer:
+        return f"🤖 Gemini ({get_gemini_model()}):\n\n{answer}", True
+
+    listed_names = "\n".join(f"{index}. {name}" for index, name in enumerate(names, 1))
+    return f"📋 Roster preview (fallback; Gemini unavailable):\n\n{listed_names or 'No names found in the roster.'}", False
+
+
+def test_gemini_connection() -> tuple[bool, str]:
+    """Test primary Gemini API connectivity using GeminiProvider."""
+    key = get_primary_gemini_key()
+    if not key:
+        return False, "Gemini is not configured. Check GEMINI_API_KEY in .env."
+    return GeminiProvider.test_connection(key, get_gemini_model())
+
+
+def test_openai_connection() -> tuple[bool, str]:
+    """Test OpenAI API connectivity using OpenAIProvider."""
+    key = get_openai_key()
+    if not key:
+        return False, "OpenAI is not configured. Check OPENAI_API_KEY in .env."
+    return OpenAIProvider.test_connection(key, get_openai_model())
 
 
 def process_hr_instruction(

@@ -98,24 +98,33 @@ pip install -r requirements.txt
 ### 3. Optional Configuration (`.env`)
 The application is designed to run **out-of-the-box without any API keys or configuration**. It defaults to the **Rule-Based Fallback Demo Engine** and **Simulated Email Mode**.
 
-To enable genuine Gemini AI review or Real SMTP sending, create a `.env` file:
+To enable Gemini or OpenAI model reviews, or real SMTP sending, configure the ignored `.env` file. If it does not exist, copy the template; if it already exists, edit it in place (do not overwrite it):
 ```bash
 cp .env.example .env
 ```
-Edit `.env`:
+Edit the ignored `.env` file (never put real credentials in `.env.example`):
 ```env
 # Gemini API Key (Optional)
-GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_API_KEY=your_real_gemini_api_key
+GEMINI_MODEL=gemini-3.6-flash
+
+# OpenAI (optional; used when Gemini is unavailable)
+OPENAI_API_KEY=your_real_openai_api_key
+OPENAI_MODEL=gpt-4o-mini
 
 # SMTP Email Dispatch (Optional)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
-SMTP_PASSWORD=your_app_password
+SMTP_PASSWORD=your_gmail_app_password
 SMTP_FROM=your_email@gmail.com
 SMTP_USE_TLS=true
 ```
+
+The OpenAI key can also be supplied as `OPEN_AI_API_KEY`, `Open_AI_KEY`, or
+`OPENAI_KEY`. For secret-file deployments, `.env/open_ai/api_key` is supported.
+The review and mentor chat use the configured model; if all configured LLM APIs
+fail or no key is set, the app keeps using its labeled deterministic fallback.
 
 ### 4. Running the Web Application
 Launch the local Streamlit server:
@@ -130,15 +139,12 @@ Open your browser to: **`http://localhost:8501`**
 
 ## 🧪 Running Automated Tests
 
-Run the full pytest suite (21 automated tests covering units, integration, and UI smoke testing):
+Run the deterministic suite without the optional live API check:
 ```bash
-python -m pytest tests/ -v
+python -m pytest tests/ -v -m "not live_api"
 ```
 
-Expected output:
-```text
-============================= 21 passed in 4.39s ==============================
-```
+To test a configured Gemini key and model separately, use the **Test Gemini connection** button in the HR attachment drawer. This makes one live provider request and reports the provider/model result.
 
 ---
 
@@ -196,8 +202,28 @@ Follow this 5-minute walkthrough to demonstrate the full conversational workflow
 
 | Feature | When Configured in `.env` | When Unconfigured / Missing |
 | :--- | :--- | :--- |
-| **Review Engine** | Uses Google Gemini (`gemini-2.0-flash`) for multi-modal reasoning. UI displays: `🤖 AI REVIEW (Powered by Gemini)`. | Uses deterministic keyword and pattern matching. UI displays: `⚖️ RULE-BASED DEMO RESULTS (Fallback Engine)`. |
+| **AI Status & Indicator** | UI displays configured provider/model, marked as unverified until the connection test succeeds. Queries follow Gemini → secondary Gemini → OpenAI. | UI displays limited mode; reviews use the clearly labeled deterministic fallback and mentor answers use verified local references. |
+| **Review Engine** | Uses configured Google Gemini / OpenAI models for reasoning. UI displays: `🤖 AI REVIEW (Powered by Gemini)`. | Uses deterministic keyword and pattern matching. UI displays: `⚖️ RULE-BASED DEMO RESULTS (Fallback Engine)`. |
+| **Offline Knowledge Base** | Full local dataset reference library available in UI and via search service (`src/offline_knowledge.py`). | Full local dataset reference library available in UI and via search service (`src/offline_knowledge.py`). |
 | **Email Dispatch** | Reviewer can click **"Send Real Email via SMTP"** to dispatch real TLS emails. | Button is safely disabled. Reviewer clicks **"Save Simulated Email"**, recorded as `SIMULATED — NOT SENT`. |
+
+---
+
+## 📚 Offline Knowledge Base & Dataset Validation
+
+The application includes a curated, verified offline dataset in `data/` providing instant, reliable reference information without external APIs:
+
+- `data/python_learning.json`: Python core, data structures, exceptions, OOP, context managers.
+- `data/web_development.json`: REST principles, HTTP status codes, DOM, Flexbox/Grid, CORS, ORM.
+- `data/ai_ml_learning.json`: Machine learning basics, evaluation metrics, TF-IDF, embeddings.
+- `data/git_github.json`: Staging, branch workflows, merge conflict resolution, rebase.
+- `data/internship_tasks.json`: Educational reference tasks with objectives, deliverables, and rubrics.
+- `data/faq.json`: Portal procedures, submissions, offline mode, and review policies.
+
+To validate dataset integrity:
+```bash
+python scripts/validate_dataset.py
+```
 
 ---
 

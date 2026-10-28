@@ -1,0 +1,77 @@
+{
+  "topic": "ai_ml",
+  "description": "Artificial intelligence, machine learning basics, model evaluation metrics, training/testing splits, and natural language processing.",
+  "items": [
+    {
+      "id": "ai-001",
+      "topic": "ai_ml",
+      "question": "What is the difference between Supervised, Unsupervised, and Reinforcement Learning?",
+      "answer": "Supervised Learning trains models on labeled input-output pairs (e.g. classification of spam vs non-spam). Unsupervised Learning discovers hidden structures or clusters in unlabeled data (e.g. customer segmentation). Reinforcement Learning trains an agent to make sequential decisions by interacting with an environment to maximize cumulative reward.",
+      "keywords": ["supervised", "unsupervised", "reinforcement learning", "machine learning", "classification", "clustering", "labels"],
+      "difficulty": "beginner",
+      "example": "# Supervised: X_features, y_labels\n# Unsupervised: X_features only (e.g. KMeans(k=3))\n# Reinforcement: Agent, Action, Environment, Reward",
+      "source": "Foundations of Machine Learning"
+    },
+    {
+      "id": "ai-002",
+      "topic": "ai_ml",
+      "question": "What are Precision, Recall, and F1-Score, and how do they differ from Accuracy?",
+      "answer": "Accuracy measures the ratio of all correct predictions over total predictions, but is misleading on imbalanced datasets. Precision (True Positives / Predicted Positives) measures how many selected items are relevant. Recall (True Positives / Actual Positives) measures how many relevant items were selected. F1-Score is the harmonic mean of Precision and Recall.",
+      "keywords": ["precision", "recall", "f1-score", "accuracy", "metrics", "evaluation", "confusion matrix"],
+      "difficulty": "intermediate",
+      "example": "Precision = TP / (TP + FP)\nRecall = TP / (TP + FN)\nF1 = 2 * (Precision * Recall) / (Precision + Recall)",
+      "source": "Scikit-Learn Model Evaluation Guide"
+    },
+    {
+      "id": "ai-003",
+      "topic": "ai_ml",
+      "question": "What are Overfitting and Underfitting, and how can they be prevented?",
+      "answer": "Overfitting occurs when a model learns the training data and noise too closely, failing to generalize to new test data (high variance). Underfitting occurs when a model is too simple to capture the underlying pattern (high bias). Mitigate overfitting with regularization (L1/L2), cross-validation, pruning, dropout, or increasing training samples.",
+      "keywords": ["overfitting", "underfitting", "bias", "variance", "regularization", "generalization", "cross-validation"],
+      "difficulty": "intermediate",
+      "example": "# Diagnostic signs:\n# Overfitting: Training loss = 0.02, Validation loss = 0.85\n# Underfitting: Training loss = 0.65, Validation loss = 0.68",
+      "source": "Deep Learning - Goodfellow, Bengio, Courville"
+    },
+    {
+      "id": "ai-004",
+      "topic": "ai_ml",
+      "question": "What is TF-IDF (Term Frequency - Inverse Document Frequency) and how does it work?",
+      "answer": "TF-IDF evaluates how important a word is to a document within a collection. Term Frequency (TF) measures how often a word appears in a document. Inverse Document Frequency (IDF) discounts common words (like 'the', 'is') that appear across many documents. Words that are frequent in one specific document but rare across the corpus receive the highest TF-IDF weight.",
+      "keywords": ["tf-idf", "nlp", "text retrieval", "term frequency", "information retrieval", "vectorization"],
+      "difficulty": "intermediate",
+      "example": "TF(t, d) = count(t in d) / total_words(d)\nIDF(t, D) = log(total_documents / documents_with_term_t)\nTF-IDF = TF * IDF",
+      "source": "Introduction to Information Retrieval - Manning, Raghavan, Schütze"
+    },
+    {
+      "id": "ai-005",
+      "topic": "ai_ml",
+      "question": "What are Vector Embeddings in Large Language Models and Modern Search?",
+      "answer": "Embeddings are dense numerical vectors representing the semantic meaning of text chunks in high-dimensional space. Words or sentences with similar meanings (such as 'developer' and 'programmer') are positioned close together in vector space, allowing semantic similarity search using cosine distance.",
+      "keywords": ["embeddings", "vector search", "llm", "semantic similarity", "cosine distance", "dense vectors"],
+      "difficulty": "intermediate",
+      "example": "cosine_similarity = dot(A, B) / (norm(A) * norm(B))\n# Similarity close to 1.0 indicates strong semantic overlap.",
+      "source": "Attention Is All You Need / Word2Vec Literature"
+    },
+    {
+      "id": "ai-006",
+      "topic": "ai_ml",
+      "question": "Why is data preprocessing (cleaning, scaling, encoding) essential before model training?",
+      "answer": "Machine learning algorithms require clean numerical inputs. Preprocessing handles missing values (imputation or dropping), scales features to a uniform range (MinMaxScaler, StandardScaler) so distance-based algorithms are not biased by large units, and encodes categorical variables into numbers (One-Hot or Label Encoding).",
+      "keywords": ["preprocessing", "scaling", "normalization", "imputation", "one-hot encoding", "data cleaning"],
+      "difficulty": "beginner",
+      "example": "from sklearn.preprocessing import StandardScaler\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X_train)",
+      "source": "Data Mining: Concepts and Techniques"
+    },
+    {
+      "id": "ai-007",
+      "topic": "ai_ml",
+      "question": "What is the purpose of train-test splitting and k-fold cross-validation?",
+      "answer": "Evaluating a model on the same data it was trained on produces overly optimistic performance estimates. Train-test splitting holds out unseen data for unbiased evaluation. K-fold cross-validation splits data into k subsets, training on k-1 and validating on the remaining 1 across k rounds, ensuring evaluation stability.",
+      "keywords": ["train test split", "k-fold", "cross-validation", "evaluation", "leakage", "data science"],
+      "difficulty": "beginner",
+      "example": "from sklearn.model_selection import train_test_split\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)",
+      "source": "Applied Predictive Modeling"
+    }
+  ]
+}
+

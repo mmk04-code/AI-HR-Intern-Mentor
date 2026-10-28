@@ -1,0 +1,133 @@
+{
+  "topic": "internship_tasks",
+  "description": "Sample educational internship tasks with objectives, requirements, expected deliverables, and evaluation rubrics. These are reference examples only.",
+  "items": [
+    {
+      "id": "task-001",
+      "topic": "internship_tasks",
+      "question": "Sample Task: RESTful API for Task Management (Reference Example)",
+      "answer": "Build a backend REST API with endpoints to create, list, retrieve, update, and delete tasks. Include input validation for required fields, handle missing resources with standard HTTP 404 responses, and implement automated tests.",
+      "keywords": ["rest api", "crud", "validation", "task management", "http status codes", "sample task", "backend"],
+      "difficulty": "intermediate",
+      "objectives": [
+        "Design clean API endpoints following REST naming conventions.",
+        "Implement schema validation for request payloads.",
+        "Return standard HTTP status codes (200, 201, 400, 404, 500).",
+        "Write unit tests covering valid input, invalid input, and not-found scenarios."
+      ],
+      "deliverables": [
+        "Source code repository containing routes, models, and service layer.",
+        "README.md with setup instructions, dependency list, and curl/Postman examples.",
+        "Automated test suite executable with pytest."
+      ],
+      "evaluation_criteria": [
+        "Architecture & Code Quality (30%): Clean separation of concerns, readable naming, no global state.",
+        "Functionality & Requirements (40%): Correct CRUD operations, proper status codes, validation logic.",
+        "Error Handling (15%): Graceful handling of invalid inputs and edge cases.",
+        "Documentation & Tests (15%): Clear README and meaningful unit test assertions."
+      ],
+      "source": "Sample Reference Curriculum - Engineering Foundations (Example Only)"
+    },
+    {
+      "id": "task-002",
+      "topic": "internship_tasks",
+      "question": "Sample Task: Relational Database Schema & CRUD Service (Reference Example)",
+      "answer": "Design an SQLite or PostgreSQL relational database schema with at least two related tables (e.g. Users and Tasks). Write a repository/service module that manages records using parameterized queries or an ORM, preventing SQL injection.",
+      "keywords": ["database", "schema", "sqlite", "orm", "foreign keys", "sql injection", "sample task", "crud"],
+      "difficulty": "intermediate",
+      "objectives": [
+        "Create tables with appropriate primary keys, foreign key constraints, and timestamps.",
+        "Implement data access methods with parameterized queries or SQLAlchemy ORM.",
+        "Handle database transaction rollbacks upon query errors."
+      ],
+      "deliverables": [
+        "Database migration or schema initialization script.",
+        "Data access class with insert, select, update, and delete methods.",
+        "Integration test demonstrating relational integrity enforcement."
+      ],
+      "evaluation_criteria": [
+        "Schema Design (35%): Proper normalization, foreign keys, and indexes.",
+        "Security (25%): Strict use of parameterized queries, zero raw string concatenation.",
+        "Robustness (20%): Transaction commits and rollback handling on failures.",
+        "Test Coverage (20%): Tests validating CRUD flows and foreign key cascades."
+      ],
+      "source": "Sample Reference Curriculum - Data Engineering (Example Only)"
+    },
+    {
+      "id": "task-003",
+      "topic": "internship_tasks",
+      "question": "Sample Task: Document & Log Parser Script (Reference Example)",
+      "answer": "Create a command-line Python utility that reads unstructured text or log files, extracts key metrics (e.g. error counts, response times, unique user IDs) using regex and string operations, and exports structured results into JSON and CSV formats.",
+      "keywords": ["file parsing", "regex", "log analysis", "json export", "csv export", "sample task", "cli"],
+      "difficulty": "beginner",
+      "objectives": [
+        "Parse log lines safely without throwing unhandled exceptions on malformed input.",
+        "Extract structured timestamps, log levels, and error descriptions using regular expressions.",
+        "Output structured summary reports to stdout and exportable JSON files."
+      ],
+      "deliverables": [
+        "CLI script accepting input file paths via argparse.",
+        "Sample test data files with representative normal and malformed log entries.",
+        "Pytest unit tests verifying parsing accuracy."
+      ],
+      "evaluation_criteria": [
+        "Parsing Robustness (40%): Gracefully skips corrupted lines without halting execution.",
+        "Output Accuracy (30%): Extracted fields match expected counts and types.",
+        "Code Modularity (15%): Functions adhere to single responsibility principle.",
+        "Testing (15%): Tests verify regex edge cases."
+      ],
+      "source": "Sample Reference Curriculum - Systems & Tools (Example Only)"
+    },
+    {
+      "id": "task-004",
+      "topic": "internship_tasks",
+      "question": "Sample Task: Streamlit Interactive Data Dashboard (Reference Example)",
+      "answer": "Build a responsive web dashboard using Streamlit to visualize dataset distributions, allow user filtering by category and date ranges, and display key performance indicators (KPIs) with clean card layouts.",
+      "keywords": ["streamlit", "dashboard", "data visualization", "ui", "charts", "sample task", "frontend"],
+      "difficulty": "beginner",
+      "objectives": [
+        "Load and cache tabular data using @st.cache_data for fast rendering.",
+        "Create intuitive sidebar filters for categories and date thresholds.",
+        "Display KPI metrics cards and interactive charts."
+      ],
+      "deliverables": [
+        "Standalone Streamlit app.py file.",
+        "Requirements.txt specifying required versions.",
+        "Clean user interface with error handling for empty filter results."
+      ],
+      "evaluation_criteria": [
+        "User Experience (35%): Intuitive navigation, clear chart legends, responsive layout.",
+        "Performance (25%): Effective caching to avoid redundant data reloading.",
+        "Code Structure (20%): Modular component functions.",
+        "Error States (20%): Helpful empty-state messaging when filters return zero rows."
+      ],
+      "source": "Sample Reference Curriculum - Dashboard Development (Example Only)"
+    },
+    {
+      "id": "task-005",
+      "topic": "internship_tasks",
+      "question": "Sample Task: Automated Test Suite & Continuous Integration Pipeline (Reference Example)",
+      "answer": "Write a comprehensive pytest test suite covering edge cases, invalid inputs, and error states of an existing Python module. Configure a GitHub Actions workflow YAML file that executes pytest on every pull request.",
+      "keywords": ["pytest", "ci/cd", "github actions", "automated testing", "unit tests", "sample task", "quality"],
+      "difficulty": "intermediate",
+      "objectives": [
+        "Write parameterized unit tests covering boundary conditions.",
+        "Achieve over 80% line and branch test coverage.",
+        "Create .github/workflows/test.yml to run tests automatically across pull requests."
+      ],
+      "deliverables": [
+        "Pytest test files organized under tests/ directory.",
+        "GitHub Actions workflow configuration YAML.",
+        "Test coverage report generated via pytest-cov."
+      ],
+      "evaluation_criteria": [
+        "Coverage Depth (40%): Tests exercise both happy paths and boundary failure states.",
+        "CI Integration (30%): Clean GitHub Actions workflow with proper caching and step reporting.",
+        "Test Independence (20%): Tests do not depend on execution order or persistent state.",
+        "Readability (10%): Clear test names following 'test_<action>_<expected_result>' convention."
+      ],
+      "source": "Sample Reference Curriculum - Software Quality Assurance (Example Only)"
+    }
+  ]
+}
+

@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "created_at": "2026-10-28",
+  "description": "Curated offline reference knowledge base for the Internship Task Review Assistant.",
+  "disclaimer": "Sample tasks, technical explanations, and FAQ entries are educational reference examples only. They do not constitute official company policies, actual employee records, or binding contractual requirements.",
+  "source": "Internship Task Review Assistant Core Reference Library",
+  "topics": [
+    "python",
+    "web_development",
+    "ai_ml",
+    "git_github",
+    "internship_tasks",
+    "faq"
+  ],
+  "item_counts": {
+    "python_learning.json": 8,
+    "web_development.json": 8,
+    "ai_ml_learning.json": 7,
+    "git_github.json": 7,
+    "internship_tasks.json": 5,
+    "faq.json": 7
+  }
+}
+

@@ -54,7 +54,15 @@ def test_answer_intern_question():
     assert "validation" in ans.lower() or "title" in ans.lower()
 
 
-def test_generate_tts_audio():
+def test_generate_tts_audio(monkeypatch):
+    class MockGTTS:
+        def __init__(self, text, lang="en", slow=False):
+            self.text = text
+            self.lang = lang
+        def write_to_fp(self, fp):
+            fp.write(b"ID3" + b"\x00" * 1200)
+
+    monkeypatch.setattr("src.mentor_chat.gTTS", MockGTTS)
     audio = generate_tts_audio("Hello intern, here is your assignment feedback.", "English")
     assert audio is not None
     assert len(audio) > 1000

@@ -4,21 +4,18 @@ Generates comprehensive feedback emails and handles both Real SMTP sending
 and Simulated Demo Mode with persistent audit logging.
 """
 
-import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Dict, Any, Tuple, Optional
 
 from src.database import log_email
+from src.config import get_email_credentials, has_email_configured
 
 
 def is_smtp_configured() -> bool:
     """Check if valid SMTP settings are provided in environment variables."""
-    host = os.getenv("SMTP_HOST", "").strip()
-    user = os.getenv("SMTP_USER", "").strip()
-    password = os.getenv("SMTP_PASSWORD", "").strip()
-    return bool(host and user and password)
+    return has_email_configured()
 
 
 def generate_feedback_email_content(
@@ -174,30 +171,57 @@ def send_or_simulate_email(
         }
 
     # Real SMTP Mode
-    host = os.getenv("SMTP_HOST")
-    port = int(os.getenv("SMTP_PORT", "587"))
-    user = os.getenv("SMTP_USER")
-    password = os.getenv("SMTP_PASSWORD")
-    from_addr = os.getenv("SMTP_FROM", user)
-    use_tls = os.getenv("SMTP_USE_TLS", "true").lower() in ["true", "1", "yes"]
+    credentials = get_email_credentials()
+    host = credentials["server"]
+    port = credentials["port"]
+    user = credentials["username"]
+    password = credentials["password"]
+    from_addr = credentials["from_address"] or user
+    use_tls = credentials["use_tls"]
+
+    server = None
+    try:
+        if use_tls:
+            server = smtplib.SMTP(host, port, timeout=12)
+            server.starttls()
+        else:
+            server = smtplib.SMTP_SSL(host, port, timeout=12)
+        server.login(user, password)
+    except Exception as e:
+        if server:
+            try:
+                server.quit()
+            except Exception:
+                pass
+        status = "SIMULATED — NOT SENT"
+        log_id = log_email(
+            review_id=review_id,
+            recipient_email=recipient_email,
+            subject=subject,
+            body_text=body_text,
+            body_html=body_html,
+            mode="SIMULATED",
+            status=status,
+            error_message=f"SMTP connection or authentication failed before sending ({type(e).__name__}); email was simulated.",
+            db_path=db_path
+        )
+        return {
+            "success": True,
+            "mode": "SIMULATED",
+            "status": status,
+            "log_id": log_id,
+            "message": "SMTP was unavailable or rejected credentials; email was safely simulated and not sent."
+        }
 
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = from_addr
         msg["To"] = recipient_email
-
         msg.attach(MIMEText(body_text, "plain", "utf-8"))
         if body_html:
             msg.attach(MIMEText(body_html, "html", "utf-8"))
 
-        if use_tls:
-            server = smtplib.SMTP(host, port, timeout=12)
-            server.starttls()
-        else:
-            server = smtplib.SMTP_SSL(host, port, timeout=12)
-
-        server.login(user, password)
         server.sendmail(from_addr, [recipient_email], msg.as_string())
         server.quit()
 
@@ -221,7 +245,7 @@ def send_or_simulate_email(
         }
     except Exception as e:
         status = "FAILED"
-        err_msg = f"SMTP transmission failed: {str(e)}"
+        err_msg = f"SMTP transmission failed ({type(e).__name__}); delivery was not confirmed."
         log_id = log_email(
             review_id=review_id,
             recipient_email=recipient_email,

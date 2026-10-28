@@ -1,0 +1,77 @@
+{
+  "topic": "git_github",
+  "description": "Git version control concepts, repository workflows, branching, merging, commits, pull requests, and troubleshooting common errors.",
+  "items": [
+    {
+      "id": "git-001",
+      "topic": "git_github",
+      "question": "What is the three-stage architecture of Git (Working Directory, Staging Area, Repository)?",
+      "answer": "Git organizes files into three main stages: The Working Directory contains your actual files on disk. The Staging Area (Index) holds snapshots of file modifications prepared to be included in the next commit via 'git add'. The Repository (.git directory) permanently stores the committed history as directed acyclic graph snapshots via 'git commit'.",
+      "keywords": ["git", "staging", "working directory", "repository", "git add", "git commit", "index"],
+      "difficulty": "beginner",
+      "example": "git add file.py        # Moves file.py to Staging Area\ngit commit -m 'feat'   # Records snapshot into Repository\ngit status             # Inspects current stage of all files",
+      "source": "Pro Git Book - Scott Chacon & Ben Straub"
+    },
+    {
+      "id": "git-002",
+      "topic": "git_github",
+      "question": "How do you resolve a Git merge conflict step-by-step?",
+      "answer": "A merge conflict occurs when two branches alter the same lines in a file. Git pauses the merge and places conflict markers in the file. To resolve: 1. Run 'git status' to identify conflicting files. 2. Open each file and locate '<<<<<<< HEAD', '=======', and '>>>>>>>'. 3. Manually choose the desired code and remove the conflict marker lines. 4. Run 'git add <file>' to mark as resolved. 5. Run 'git commit' to complete the merge.",
+      "keywords": ["merge", "conflict", "merge conflict", "markers", "head", "git status", "git add", "resolution"],
+      "difficulty": "intermediate",
+      "example": "<<<<<<< HEAD\nuser_status = 'active'\n=======\nuser_status = 'pending_verification'\n>>>>>>> feature/onboarding\n# Edit file to desired resolution, save, then:\ngit add user_model.py\ngit commit -m 'Merge branch feature/onboarding into main'",
+      "source": "Git Documentation - Resolving Conflicts"
+    },
+    {
+      "id": "git-003",
+      "topic": "git_github",
+      "question": "What is the difference between 'git merge' and 'git rebase'?",
+      "answer": "'git merge' takes the changes from one branch and combines them into another with a dedicated merge commit, preserving the exact chronological commit history. 'git rebase' rewrites commit history by moving your feature branch's base commit to the tip of the target branch, creating a clean linear commit graph. Never rebase public shared branches.",
+      "keywords": ["merge", "rebase", "git rebase", "commit history", "linear history", "fast-forward"],
+      "difficulty": "intermediate",
+      "example": "# Standard Merge:\ngit checkout main\ngit merge feature/api\n\n# Rebase workflow:\ngit checkout feature/api\ngit rebase main",
+      "source": "Atlassian Git Tutorials - Merging vs Rebasing"
+    },
+    {
+      "id": "git-004",
+      "topic": "git_github",
+      "question": "How do you undo or discard uncommitted changes in your working tree?",
+      "answer": "To discard modifications in an unstaged file, run 'git restore <file>' (or 'git checkout -- <file>' in older Git versions). To unstage a file while keeping its disk modifications, run 'git restore --staged <file>'. To clean untracked new files, run 'git clean -fd'.",
+      "keywords": ["restore", "discard", "undo", "unstage", "git restore", "git clean", "checkout"],
+      "difficulty": "beginner",
+      "example": "git restore app.py            # Discard unstaged changes in app.py\ngit restore --staged app.py   # Unstage app.py back to working directory\ngit clean -fd                 # Delete untracked files and directories",
+      "source": "Git Reference Manual - git-restore"
+    },
+    {
+      "id": "git-005",
+      "topic": "git_github",
+      "question": "What is the purpose of .gitignore and why are committed secrets dangerous?",
+      "answer": "The .gitignore file specifies untracked file patterns (such as virtual environments .venv/, compiled bytecode __pycache__/, and environment secret files .env) that Git should ignore. Committing credentials, passwords, or API keys to a Git repository permanently records them in history, making them visible even after subsequent deletions unless the repository history is purged.",
+      "keywords": ["gitignore", "secrets", "api key", "credentials", "security", "security risk", "untracked"],
+      "difficulty": "beginner",
+      "example": "# Example .gitignore:\n.env\n.env/\n__pycache__/\n*.pyc\n.venv/\ncredentials.json",
+      "source": "GitHub Docs - Ignoring Files & Secret Scanning"
+    },
+    {
+      "id": "git-006",
+      "topic": "git_github",
+      "question": "How do 'git fetch' and 'git pull' differ?",
+      "answer": "'git fetch' downloads commits, files, and refs from a remote repository into your local repository without altering or merging into your working directory. 'git pull' performs 'git fetch' followed immediately by 'git merge' into your currently checked out local branch.",
+      "keywords": ["fetch", "pull", "git fetch", "git pull", "remote", "origin", "synchronization"],
+      "difficulty": "beginner",
+      "example": "git fetch origin              # Inspect remote branches without touching local code\ngit log HEAD..origin/main    # View incoming commits\ngit pull origin main         # Fetch and merge in one command",
+      "source": "Pro Git Book - Working with Remotes"
+    },
+    {
+      "id": "git-007",
+      "topic": "git_github",
+      "question": "How do you create, switch, and delete Git branches?",
+      "answer": "Branches represent independent lines of development. Use 'git branch <name>' to create a branch, 'git switch <name>' (or 'git checkout <name>') to switch branches, 'git switch -c <name>' to create and switch in one step, and 'git branch -d <name>' to safely delete a merged branch.",
+      "keywords": ["branch", "switch", "checkout", "git branch", "delete branch", "workflow"],
+      "difficulty": "beginner",
+      "example": "git switch -c feature/auth    # Create and switch to feature/auth\n# Work, commit changes...\ngit switch main\ngit branch -d feature/auth    # Delete branch once merged",
+      "source": "Git Documentation - git-branch"
+    }
+  ]
+}
+

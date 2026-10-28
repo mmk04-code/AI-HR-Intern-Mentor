@@ -1,0 +1,87 @@
+{
+  "topic": "python",
+  "description": "Python core concepts, data structures, OOP, exception handling, file I/O, and common runtime errors.",
+  "items": [
+    {
+      "id": "py-001",
+      "topic": "python",
+      "question": "What is the difference between mutable and immutable types in Python?",
+      "answer": "Mutable objects (such as list, dict, set) can be modified in place after creation without altering their memory identity (id). Immutable objects (such as int, float, str, tuple, frozenset) cannot be changed; modifying them creates a new object in memory.",
+      "keywords": ["mutable", "immutable", "list", "dict", "tuple", "str", "memory", "id"],
+      "difficulty": "beginner",
+      "example": "x = [1, 2]\nx.append(3)  # Same list modified\ns = 'hello'\ns = s + '!'  # Creates a new string object",
+      "source": "Python Documentation - Data Model"
+    },
+    {
+      "id": "py-002",
+      "topic": "python",
+      "question": "How do virtual environments work and why should you use them?",
+      "answer": "A virtual environment is an isolated Python runtime environment with its own set of installed packages and site-packages directory. It prevents package version conflicts between different projects and avoids modifying system-wide packages.",
+      "keywords": ["venv", "virtualenv", "pip", "dependencies", "isolation", "site-packages", "requirements.txt"],
+      "difficulty": "beginner",
+      "example": "python -m venv .venv\n# On Windows: .venv\\Scripts\\activate\n# On Unix/macOS: source .venv/bin/activate\npip install -r requirements.txt",
+      "source": "Python Packaging User Guide"
+    },
+    {
+      "id": "py-003",
+      "topic": "python",
+      "question": "What is the difference between list append() and extend()?",
+      "answer": "append(x) places x as a single element at the end of the list. extend(iterable) iterates over the supplied collection and appends each element individually to the list.",
+      "keywords": ["list", "append", "extend", "collections", "data structures", "iteration"],
+      "difficulty": "beginner",
+      "example": "items = [1, 2]\nitems.append([3, 4])  # Result: [1, 2, [3, 4]]\nitems = [1, 2]\nitems.extend([3, 4])  # Result: [1, 2, 3, 4]",
+      "source": "Python Library Reference - Sequence Types"
+    },
+    {
+      "id": "py-004",
+      "topic": "python",
+      "question": "How does exception handling with try-except-finally work in Python?",
+      "answer": "The try block holds code that might raise an exception. One or more except blocks catch and handle specific exception classes. An optional else block runs only if no exception occurred. The finally block always executes, making it ideal for cleanup like closing files or connections.",
+      "keywords": ["try", "except", "finally", "else", "exception", "error handling", "cleanup", "raise"],
+      "difficulty": "beginner",
+      "example": "try:\n    val = int(user_input)\nexcept ValueError as err:\n    print(f'Invalid integer: {err}')\nelse:\n    print(f'Processed: {val}')\nfinally:\n    print('Cleanup complete.')",
+      "source": "Python Tutorial - Errors and Exceptions"
+    },
+    {
+      "id": "py-005",
+      "topic": "python",
+      "question": "How do Python context managers and the 'with' statement prevent resource leaks?",
+      "answer": "Context managers implement the __enter__() and __exit__() methods. The 'with' statement ensures __exit__() is called even if an unhandled exception is raised, guaranteeing files, sockets, or database connections are properly closed.",
+      "keywords": ["with", "context manager", "enter", "exit", "file handling", "resources", "open"],
+      "difficulty": "intermediate",
+      "example": "with open('data.txt', 'r', encoding='utf-8') as f:\n    content = f.read()\n# File is automatically closed here even if an error occurred.",
+      "source": "Python Enhancement Proposal PEP 343"
+    },
+    {
+      "id": "py-006",
+      "topic": "python",
+      "question": "What are *args and **kwargs in Python function definitions?",
+      "answer": "*args collects positional arguments into a tuple. **kwargs collects keyword arguments into a dictionary. They allow functions to accept an arbitrary number of parameters dynamically.",
+      "keywords": ["args", "kwargs", "parameters", "arguments", "functions", "tuple", "dictionary", "variadic"],
+      "difficulty": "intermediate",
+      "example": "def log_event(event_name, *args, **kwargs):\n    print(f'Event: {event_name}, positional: {args}, keyword: {kwargs}')\n\nlog_event('login', 'intern_01', ip='127.0.0.1', success=True)",
+      "source": "Python Language Reference"
+    },
+    {
+      "id": "py-007",
+      "topic": "python",
+      "question": "How do Python classes, __init__, and inheritance work?",
+      "answer": "Classes define blueprints for objects. The __init__ method is the constructor that initializes instance attributes using 'self'. Child classes inherit attributes and methods from parent classes, calling super().__init__() to invoke the parent constructor.",
+      "keywords": ["class", "oop", "init", "self", "inheritance", "super", "polymorphism", "constructor"],
+      "difficulty": "intermediate",
+      "example": "class Employee:\n    def __init__(self, name: str):\n        self.name = name\n\nclass Intern(Employee):\n    def __init__(self, name: str, mentor: str):\n        super().__init__(name)\n        self.mentor = mentor",
+      "source": "Python Documentation - Classes"
+    },
+    {
+      "id": "py-008",
+      "topic": "python",
+      "question": "What is the cause of 'AttributeError: 'NoneType' object has no attribute' and how do you resolve it?",
+      "answer": "This occurs when calling a method or accessing an attribute on a variable that evaluated to None instead of the expected object (e.g. from a function without a return statement or a dictionary lookup that returned None). Prevent it by checking if the object is not None before access or using default fallback values.",
+      "keywords": ["attributeerror", "nonetype", "none", "debugging", "runtime error", "null pointer"],
+      "difficulty": "beginner",
+      "example": "# Bug: item = find_user(10) -> returns None\n# item.email raises AttributeError\n\n# Fix:\nitem = find_user(10)\nif item is not None:\n    email = item.email\nelse:\n    email = 'default@example.com'",
+      "source": "Python Common Errors & Troubleshooting"
+    }
+  ]
+}
+

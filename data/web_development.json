@@ -1,0 +1,87 @@
+{
+  "topic": "web_development",
+  "description": "HTML, CSS, JavaScript, HTTP APIs, REST principles, Django/FastAPI frameworks, and relational databases.",
+  "items": [
+    {
+      "id": "web-001",
+      "topic": "web_development",
+      "question": "What are RESTful API architectural principles and HTTP methods?",
+      "answer": "REST (Representational State Transfer) uses standard HTTP verbs to interact with resources identified by URIs. GET retrieves data, POST creates a new resource, PUT replaces a resource, PATCH applies partial modifications, and DELETE removes a resource. Communication is stateless, meaning each request contains all necessary credentials and parameters.",
+      "keywords": ["rest", "api", "http", "get", "post", "put", "delete", "patch", "stateless", "endpoints"],
+      "difficulty": "beginner",
+      "example": "GET /api/v1/interns          # List interns\nPOST /api/v1/interns         # Create intern\nGET /api/v1/interns/{id}     # Retrieve intern {id}\nPUT /api/v1/interns/{id}     # Update intern {id}\nDELETE /api/v1/interns/{id}  # Delete intern {id}",
+      "source": "MDN Web Docs - HTTP Methods & REST Architecture"
+    },
+    {
+      "id": "web-002",
+      "topic": "web_development",
+      "question": "What are standard HTTP response status codes and when should each be returned?",
+      "answer": "HTTP status codes communicate the outcome of a request: 200 OK (successful request), 201 Created (resource successfully created), 400 Bad Request (client sent malformed or invalid data), 401 Unauthorized (authentication missing or invalid), 403 Forbidden (authenticated but lacking permissions), 404 Not Found (resource does not exist), 422 Unprocessable Entity (semantic validation failed), and 500 Internal Server Error (unhandled server exception).",
+      "keywords": ["http", "status code", "200", "201", "400", "401", "404", "422", "500", "responses"],
+      "difficulty": "beginner",
+      "example": "return JSONResponse(status_code=400, content={'error': 'Task title must be at least 5 characters long.'})",
+      "source": "RFC 9110 HTTP Semantics"
+    },
+    {
+      "id": "web-003",
+      "topic": "web_development",
+      "question": "What is the Document Object Model (DOM) and how does JavaScript manipulate it?",
+      "answer": "The DOM is a structured tree representation of HTML elements created by the browser. JavaScript accesses and modifies DOM nodes using methods like querySelector(), addEventListener(), and classList manipulation to create responsive user interfaces.",
+      "keywords": ["dom", "javascript", "html", "events", "addeventlistener", "queryselector", "frontend"],
+      "difficulty": "beginner",
+      "example": "const submitBtn = document.querySelector('#submit-btn');\nsubmitBtn.addEventListener('click', () => {\n    document.querySelector('#status').textContent = 'Submission received!';\n});",
+      "source": "MDN Web Docs - DOM Introduction"
+    },
+    {
+      "id": "web-004",
+      "topic": "web_development",
+      "question": "How does CSS Flexbox differ from CSS Grid, and when should you choose each?",
+      "answer": "CSS Flexbox is one-dimensional, designed for aligning items along a single axis (either row or column), such as navigation bars, form controls, and centered content. CSS Grid is two-dimensional, handling both rows and columns simultaneously, making it ideal for overall page layouts and multi-column dashboard card grids.",
+      "keywords": ["css", "flexbox", "grid", "layout", "responsive", "styling", "alignment"],
+      "difficulty": "intermediate",
+      "example": "/* Flexbox: 1D row layout */\n.navbar { display: flex; justify-content: space-between; align-items: center; }\n\n/* Grid: 2D responsive cards */\n.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }",
+      "source": "W3C CSS Specifications"
+    },
+    {
+      "id": "web-005",
+      "topic": "web_development",
+      "question": "What is Cross-Origin Resource Sharing (CORS) and how is it resolved?",
+      "answer": "CORS is a browser security mechanism that blocks web pages on one origin (e.g. http://localhost:3000) from requesting resources from another origin (e.g. http://localhost:8000) unless the server returns headers like 'Access-Control-Allow-Origin'. Configure CORS middleware on your backend server to whitelist trusted client domains.",
+      "keywords": ["cors", "cross-origin", "headers", "security", "middleware", "api", "browser"],
+      "difficulty": "intermediate",
+      "example": "# FastAPI CORS middleware example:\nfrom fastapi.middleware.cors import CORSMiddleware\napp.add_middleware(CORSMiddleware, allow_origins=['http://localhost:3000'], allow_methods=['*'])",
+      "source": "MDN Web Docs - Cross-Origin Resource Sharing"
+    },
+    {
+      "id": "web-006",
+      "topic": "web_development",
+      "question": "How do database indexes improve query performance and what are their trade-offs?",
+      "answer": "Indexes are data structures (typically B-Trees) that allow the database engine to locate records without scanning the entire table (sequential scan). Indexes speed up SELECT queries with WHERE, JOIN, and ORDER BY clauses, but add overhead during INSERT, UPDATE, and DELETE operations because index trees must be recalculated.",
+      "keywords": ["database", "index", "b-tree", "sql", "performance", "optimization", "select"],
+      "difficulty": "intermediate",
+      "example": "CREATE INDEX idx_candidate_email ON candidates(email);\n-- Query now performs an index seek instead of a full table scan:\nSELECT * FROM candidates WHERE email = 'intern@example.com';",
+      "source": "PostgreSQL & SQLite Query Planning Manuals"
+    },
+    {
+      "id": "web-007",
+      "topic": "web_development",
+      "question": "What is an Object-Relational Mapper (ORM) and how does it prevent SQL injection?",
+      "answer": "An ORM maps database tables to object-oriented classes and rows to model instances (e.g. SQLAlchemy, Django ORM). ORMs prevent SQL injection vulnerabilities by automatically using parameterized queries, ensuring user inputs are treated strictly as data literals rather than executable SQL statements.",
+      "keywords": ["orm", "sql injection", "sqlalchemy", "django orm", "security", "parameterized queries", "models"],
+      "difficulty": "intermediate",
+      "example": "# Safe ORM lookup (parameterized automatically):\nuser = session.query(Candidate).filter_by(email=user_input).first()\n# NEVER do: session.execute(f'SELECT * FROM users WHERE email = \\'{user_input}\\'')",
+      "source": "OWASP SQL Injection Prevention Cheat Sheet"
+    },
+    {
+      "id": "web-008",
+      "topic": "web_development",
+      "question": "What is the difference between session-based authentication and JWT token authentication?",
+      "answer": "Session authentication stores user session state on the server (in memory or database) and issues a session ID cookie to the client. JSON Web Tokens (JWT) are stateless: user identity and claims are digitally signed into a cryptographic token stored by the client (localStorage or HttpOnly cookie), eliminating server session lookup on each request.",
+      "keywords": ["authentication", "jwt", "session", "cookies", "security", "stateless", "tokens"],
+      "difficulty": "intermediate",
+      "example": "// JWT structure: header.payload.signature\n// e.g. Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "source": "RFC 7519 JSON Web Token"
+    }
+  ]
+}
+

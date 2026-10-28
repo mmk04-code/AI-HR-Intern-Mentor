@@ -1,6 +1,7 @@
 # Environment variables & secrets
 .env
 *.env
+.env.*
 !.env.example
 
 # Python bytecode & cache
@@ -14,12 +15,13 @@ data/*.db
 data/*.sqlite
 data/*.sqlite3
 uploads/
+uploaded_files/
 temp/
 
 # Virtual environment
 venv/
 .venv/
-env/
+.env/
 ENV/
 
 # IDE & Editor files
