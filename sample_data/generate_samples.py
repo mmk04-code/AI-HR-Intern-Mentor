@@ -175,8 +175,24 @@ if __name__ == '__main__':
     print(f"Generated {zip_path}")
 
 
+def create_sample_spreadsheets():
+    import pandas as pd
+    data = [
+        {"Name": "Aarav Sharma", "Email": "aarav.sharma@example.com", "Role": "Full-Stack Web Development Intern", "Batch": "Batch-2026-Fall"},
+        {"Name": "Priya Patel", "Email": "priya.patel@example.com", "Role": "Backend Engineering Intern", "Batch": "Batch-2026-Fall"},
+        {"Name": "Karthik Raja", "Email": "karthik.raja@example.com", "Role": "Frontend Engineering Intern", "Batch": "Batch-2026-Fall"}
+    ]
+    df = pd.DataFrame(data)
+    xlsx_path = os.path.join(SAMPLE_DIR, "interns_roster.xlsx")
+    csv_path = os.path.join(SAMPLE_DIR, "interns_roster.csv")
+    df.to_excel(xlsx_path, index=False)
+    df.to_csv(csv_path, index=False)
+    print(f"Generated {xlsx_path} and {csv_path}")
+
+
 if __name__ == "__main__":
     create_docx_requirements()
     create_txt_requirements()
     create_sample_zip_v1()
     create_sample_zip_v2()
+    create_sample_spreadsheets()

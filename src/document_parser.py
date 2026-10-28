@@ -176,3 +176,127 @@ def _parse_docx(file_bytes: bytes) -> str:
                 full_text.append(" | ".join(row_data))
 
     return "\n\n".join(full_text)
+
+
+def parse_spreadsheet(
+    file_source: Union[str, bytes, io.BytesIO],
+    filename: str
+) -> Dict[str, Any]:
+    """
+    Parse an Excel (.xlsx, .xls) or CSV file containing intern/employee rosters.
+
+    Returns:
+        dict: {
+            "success": bool,
+            "records": List[Dict[str, str]],
+            "count": int,
+            "error": Optional[str],
+            "filename": str
+        }
+    """
+    import pandas as pd
+
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in [".xlsx", ".xls", ".csv"]:
+        return {
+            "success": False,
+            "records": [],
+            "count": 0,
+            "error": f"Unsupported spreadsheet format '{ext}'. Expected .xlsx, .xls, or .csv.",
+            "filename": filename
+        }
+
+    try:
+        # Load dataframe
+        if isinstance(file_source, (bytes, io.BytesIO)) or hasattr(file_source, "read"):
+            if isinstance(file_source, bytes):
+                stream = io.BytesIO(file_source)
+            elif hasattr(file_source, "read") and not isinstance(file_source, io.BytesIO):
+                file_source.seek(0)
+                stream = io.BytesIO(file_source.read())
+            else:
+                stream = file_source
+                stream.seek(0)
+
+            if ext in [".xlsx", ".xls"]:
+                df = pd.read_excel(stream)
+            else:
+                df = pd.read_csv(stream)
+        else:
+            if ext in [".xlsx", ".xls"]:
+                df = pd.read_excel(file_source)
+            else:
+                df = pd.read_csv(file_source)
+
+        if df.empty:
+            return {
+                "success": False,
+                "records": [],
+                "count": 0,
+                "error": f"The spreadsheet '{filename}' contains no rows.",
+                "filename": filename
+            }
+
+        # Normalize column names
+        col_map = {}
+        for col in df.columns:
+            clean = str(col).strip().lower().replace("_", " ")
+            if any(k in clean for k in ["candidate name", "intern name", "full name", "employee name", "name"]):
+                if "name" not in col_map:
+                    col_map["name"] = col
+            elif any(k in clean for k in ["email address", "mail", "email"]):
+                if "email" not in col_map:
+                    col_map["email"] = col
+            elif any(k in clean for k in ["role", "designation", "position", "title"]):
+                if "role" not in col_map:
+                    col_map["role"] = col
+            elif any(k in clean for k in ["batch", "cohort", "group"]):
+                if "batch" not in col_map:
+                    col_map["batch"] = col
+
+        if "name" not in col_map and "email" not in col_map:
+            return {
+                "success": False,
+                "records": [],
+                "count": 0,
+                "error": f"Could not detect 'Name' or 'Email' columns in '{filename}'. Found columns: {list(df.columns)}",
+                "filename": filename
+            }
+
+        records = []
+        for _, row in df.iterrows():
+            name_val = str(row[col_map["name"]]).strip() if "name" in col_map and pd.notna(row[col_map["name"]]) else ""
+            email_val = str(row[col_map["email"]]).strip() if "email" in col_map and pd.notna(row[col_map["email"]]) else ""
+            role_val = str(row[col_map["role"]]).strip() if "role" in col_map and pd.notna(row[col_map["role"]]) else "Software Engineering Intern"
+            batch_val = str(row[col_map["batch"]]).strip() if "batch" in col_map and pd.notna(row[col_map["batch"]]) else "Batch-2026-A"
+
+            if name_val or email_val:
+                if not name_val:
+                    name_val = email_val.split("@")[0].capitalize()
+                if not email_val:
+                    email_val = f"{name_val.lower().replace(' ', '.')}@example.com"
+
+                records.append({
+                    "name": name_val,
+                    "email": email_val,
+                    "role": role_val,
+                    "batch": batch_val
+                })
+
+        return {
+            "success": True,
+            "records": records,
+            "count": len(records),
+            "error": None,
+            "filename": filename
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "records": [],
+            "count": 0,
+            "error": f"Failed to parse spreadsheet '{filename}': {str(e)}",
+            "filename": filename
+        }
+

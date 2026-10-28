@@ -1,49 +1,38 @@
-# Internship Task Review Assistant (Module 1)
+# Internship Task Review Assistant — Chat-First AI Mentor
 
 [![Python 3.14+](https://img.shields.io/badge/python-3.14+-blue.svg)](https://www.python.org/downloads/)
 [![Streamlit 1.55+](https://img.shields.io/badge/streamlit-1.55+-FF4B4B.svg)](https://streamlit.io/)
-[![Tests](https://img.shields.io/badge/tests-21%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-27%20passed-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An intelligent, local developer tool that streamlines the evaluation of intern tasks, compares candidate submissions against official company requirements, generates structured pedagogical feedback, schedules follow-up review sessions, and manages revision cycles.
+An intelligent, conversational pair-programming and mentorship assistant for evaluating intern tasks, answering technical questions in multiple languages (English, Tamil, Hindi), scheduling review sessions, and dispatching audit-trailed notifications.
 
 ---
 
-## 🌟 Key Features (Module 1)
+## 🌟 Key Features (Chat-First UI)
 
-1. **HR & Task Setup**:
-   - Register intern profile (Name, Email, Role, Batch).
-   - Configure module and task title.
-   - Ingest official company requirements documents (**PDF, DOCX, TXT, Markdown**).
-   - Ground-truth enforcement: only requirements in the document or explicitly entered are evaluated.
+1. **Role-Based Conversational Portal**:
+   - **HR / Company Interface**: Natural language chat where HR can type or speak instructions (e.g. *"Import interns from Excel and assign Module 1. Deadline is Friday"*), attach Excel/CSV rosters (`.xlsx`, `.csv`), attach official requirements docs, review assignment summary cards, and confirm task assignments.
+   - **Employee / Intern AI Mentor Interface**: Dedicated 1-on-1 AI mentor chat providing conversational task walkthroughs, technical Q&A, and direct in-chat submissions.
 
-2. **Candidate Work Ingestion**:
-   - **Upload Mode**: Supports single code/document files or **ZIP archives** with automatic safe extraction.
-   - **Public GitHub Mode**: Ingests repository tree and file contents via GitHub REST API without requiring credentials.
-   - **Zero-Execution Guarantee**: Candidate code is statically analyzed and **never executed**.
-   - Input fields for candidate completion notes and declared known issues.
+2. **Multilingual Dialogue & Voice Interaction**:
+   - AI Mentor welcomes interns and prompts for language preference: **English, Tamil (தமிழ்), or Hindi (हिंदी)**.
+   - Explains official requirements conversationally in the intern's chosen language.
+   - **Voice Output**: In-memory Text-to-Speech audio player (`gTTS` / Gemini Live API fallback) allowing interns to listen to mentor explanations.
+   - **Voice Input**: Integrated microphone audio capture (`st.audio_input`).
 
-3. **Intelligent Comparison & Feedback**:
-   - **Dual Evaluation Engine**:
-     - **Gemini AI**: High-reasoning evaluation via Google Gemini API (`gemini-2.0-flash` or configurable).
-     - **Multilingual Fallback Engine**: Deterministic rule-based comparison when API keys are absent or network is unavailable.
-     - **Explicit Engine Labelling**: The UI visibly identifies whether results are genuine AI output or Rule-Based Demo Results.
-   - **Detailed Output**: Overall Status (`Completed`, `Needs Changes`, `Incomplete`), transparent score (0-100), requirement-by-requirement comparison with evidence snippets, identified bugs, missing components, and actionable corrections.
-   - **Language Support**: Explanations available in **English, Tamil, and Hindi**.
+3. **In-Chat Candidate Submission & Evaluation**:
+   - Directly attach project files / ZIP archives or paste public GitHub repository URLs inside the chat.
+   - Instant structural & code comparison against official company requirements using Gemini or the deterministic fallback engine.
+   - In-chat conversational feedback breakdown: Score, Strengths, Things to fix, and Actionable next steps.
+   - Retains full revision history ($1, 2, \dots$) upon resubmission.
 
-4. **Next Review Scheduling**:
-   - Reviewer sets follow-up date, time (host local timezone), meeting/session link, and personalized message.
-   - Visual notification if a localhost link is used.
+4. **Next Review Scheduling & Safe Email Dispatch**:
+   - Follow-up review sessions and email notifications previewed directly in chat.
+   - Sends real emails via SMTP when configured in `.env`; otherwise records with status **`SIMULATED — NOT SENT`**.
 
-5. **Feedback Notification & Dispatch**:
-   - Full plain-text and HTML email previews.
-   - **Real SMTP Mode**: Sends live emails if SMTP credentials are provided in `.env`.
-   - **Safe Simulation Mode**: When SMTP is unconfigured, logs email with status `SIMULATED — NOT SENT`.
-
-6. **Revision Loop & Audit Trail**:
-   - Preserves all historical submissions and reviews.
-   - Supports multiple revisions per task ($1, 2, \dots$), tracking candidate improvement over time.
-   - Persistent SQLite database with immutable audit logs.
+5. **Clean & Minimalist Design**:
+   - Zero UI clutter: No manual dashboard cards, no technical sidebars, no visible API keys, and no model configuration dropdowns. All sensitive credentials reside exclusively in the backend `.env`.
 
 ---
 
@@ -148,51 +137,53 @@ Expected output:
 
 ---
 
-## 🎬 End-to-End Demo Workflow (For Screen Recording)
+## 🎬 End-to-End Demo Workflow (Chat-First Experience)
 
-Follow this 5-minute walkthrough to demonstrate the full workflow:
+Follow this 5-minute walkthrough to demonstrate the full conversational workflow:
 
-### Step 1: Dashboard Overview
-1. Open `http://localhost:8501`.
-2. Notice the metric tiles on the **📊 Dashboard** (Registered Candidates, Active Tasks, Completed Tasks, Average Score).
+### Step 1: Login Screen
+1. Open **`http://localhost:8501`**.
+2. Notice the clean, minimalist role selection:
+   - **🏢 HR / Company**
+   - **🎓 Employee / Intern**
 
-### Step 2: HR Candidate & Task Setup
-1. In the sidebar, select **👤 HR: Candidate & Task Setup**.
-2. Click **"⚡ Fill Sample Demo Data"** to auto-populate the intern's details.
-3. Keep **"Or use bundled sample requirements (`sample_data/company_requirements.md`)"** checked.
-4. Click **"💾 Save Task & Register Candidate"**.
-5. Notice the success confirmation with parsed character count.
+### Step 2: HR Chat & Task Assignment
+1. Click **"Enter as HR Coordinator"**.
+2. In the attachment drawer (`📎 Attach Documents & Voice Input`), click **"⚡ Use Sample Roster & Requirements"** (attaches `interns_roster.xlsx` and `company_requirements.md`).
+3. Type in the chatbox:
+   > *"Import these interns from the Excel file and assign them Full-Stack Task Tracker Module 1. Deadline is Friday."*
+4. The AI assistant responds with an **Assignment Summary Card** displaying the 3 parsed interns, task title, and deadline.
+5. Click **"✅ Confirm & Assign Tasks to Interns"**.
+6. The assistant confirms: *"Successfully created tasks for 3 interns: Aarav Sharma, Priya Patel, Karthik Raja."*
+7. Ask in chat: *"What is the status of the interns?"* to see live progress tracking!
+8. Click **"Sign Out"** at the top right.
 
-### Step 3: Candidate Submission — Revision 1 (Partial Work)
-1. Select **📥 Submit Candidate Work** from the sidebar.
-2. The newly created candidate and task are selected by default.
-3. Click **"📂 Use Sample V1 (Partial Submission)"** (loads a partial Flask implementation missing validation and tests).
-4. Select your preferred explanation language (**English**, **Tamil**, or **Hindi**).
-5. Click **"🚀 Analyze Submission & Generate Review"**.
+### Step 3: Intern AI Mentor Chat & Language Selection
+1. Back on the login screen, select **Aarav Sharma** from the dropdown and click **"Log In as Intern"**.
+2. Notice the minimal top banner: `📌 Task: Module 1 — Full-Stack Task Tracker Core`.
+3. The AI Mentor greets Aarav and asks for their language preference:
+   - Click **`🇬🇧 English`**, **`🇮🇳 தமிழ் (Tamil)`**, or **`🇮🇳 हिंदी (Hindi)`** (or speak/type your answer).
+4. The Mentor introduces the task conversationally in the selected language and plays **Mentor Voice Audio**!
+5. Ask any technical question (e.g. *"How do I validate the title length?"*) to see the mentor's pedagogical response.
 
-### Step 4: Review Report, Scheduling & Feedback Email
-1. The app automatically navigates to **📝 Review & Feedback Report**.
-2. Note the **Engine Status Banner** (Rule-Based Fallback or Gemini AI).
-3. Review the status badge (**Needs Changes**), score, requirement-by-requirement analysis, strengths, bugs, and prioritized checklist.
-4. Scroll to **📅 Schedule Next Review Session**:
-   - Choose a date and time.
-   - Enter a meeting link or keep the default localhost session note.
-5. Under **📧 Candidate Feedback Email**:
-   - Preview the plain-text and HTML email formatting.
-   - Click **"💾 Save Simulated Email (Demo Mode)"**.
-   - Notice the green confirmation indicating status: `SIMULATED — NOT SENT`.
+### Step 4: In-Chat Code Submission & Evaluation (Revision 1)
+1. In the attachment drawer, click **"📂 Attach Sample V1 (Partial)"**.
+2. Type in the chat: *"Here is my first draft for review."* and press Send.
+3. The AI Mentor evaluates the code against the company requirements and replies directly in chat with:
+   - Overall Outcome (**Needs Changes**) and Score (e.g. 50/100).
+   - Strengths, Areas for Improvement, and Actionable Next Steps.
+   - **AI Mentor Voice** playing spoken feedback!
+   - Follow-up meeting details and a **"Save Feedback Notification (Demo)"** button logging status: `SIMULATED — NOT SENT`.
 
-### Step 5: Candidate Resubmission — Revision 2 (Completed Work)
-1. Navigate back to **📥 Submit Candidate Work**.
-2. Notice the indicator: **"This will be registered as Revision 2"**.
-3. Click **"📂 Use Sample V2 (Completed Submission)"** (loads the complete implementation with validation and unit tests).
-4. Click **"🚀 Analyze Submission & Generate Review"**.
-5. View the updated report: outcome changes to **Completed** with a higher score!
+### Step 5: In-Chat Resubmission (Revision 2 - Completed)
+1. Click **"📂 Attach Sample V2 (Completed)"**.
+2. Send message: *"I have implemented the validation rules, filters, and unit tests."*
+3. The AI Mentor evaluates the new revision, automatically updating to **Revision 2**, and congratulates the intern with a **Completed** status and higher score!
 
-### Step 6: Revision History & Audit Trail
-1. In the sidebar, click **🔁 Revision History & Email Logs**.
-2. Inspect the **Submission & Review Timeline** showing both Revision 1 and Revision 2 with scores and timestamps.
-3. Review the **Persistent Email Dispatch Audit Logs** table showing the recorded email with status `SIMULATED — NOT SENT`.
+### Step 6: HR Progress Inquiry
+1. Click **"Sign Out"** and log back in as **HR Coordinator**.
+2. Type: *"Show me the progress of all interns."*
+3. The HR bot reports: *"Aarav Sharma: Status: Completed (Score: 88/100, Revisions: 2)"*.
 
 ---
 

@@ -7,9 +7,9 @@
 ---
 
 ## 1. Project Overview & Current State
-The project is fully implemented, self-contained, tested, and locally runnable. It satisfies all P0 and P1 requirements for Module 1:
-- HR can onboard candidates, define tasks, and upload requirements documents (PDF, DOCX, TXT, MD).
-- Candidates can submit work via ZIP archive/code files or a public GitHub repository URL.
+The project is fully implemented, self-contained, tested, and locally runnable. It features a modern **Chat-First UI** with dual roles:
+- **HR / Company Interface**: Natural language chat where HR can type or speak instructions, attach Excel/CSV rosters, attach requirements documents, review assignment summary cards, and confirm assignments.
+- **Employee / Intern AI Mentor Interface**: 1-on-1 AI mentor chat providing conversational task walkthroughs, multilingual technical Q&A (English, Tamil, Hindi), voice audio synthesis, in-chat submission reviews, and resubmissions.
 - Submissions are evaluated against requirements using either **Gemini API** or a **Deterministic Multilingual Rule-Based Fallback Engine** (English, Tamil, Hindi).
 - Reviews produce transparent scores, requirement-by-requirement breakdowns, bugs, actionable corrections, and prioritized checklists.
 - Next reviews can be scheduled with local date/time and meeting links.
@@ -21,7 +21,7 @@ The project is fully implemented, self-contained, tested, and locally runnable. 
 ## 2. Directory Structure & Key Files
 ```text
 a:/ai_assistant/
-├── app.py                     # Main Streamlit web application (5 navigation views)
+├── app.py                     # Main Streamlit web application (Chat-First UI)
 ├── requirements.txt           # Python package requirements
 ├── .env.example               # Template for Gemini and SMTP configuration
 ├── .gitignore                 # Excludes .env, *.db, cache, uploads
@@ -30,20 +30,24 @@ a:/ai_assistant/
 ├── AGENTS.md                  # Tool-neutral instructions for coding agents
 ├── src/
 │   ├── database.py            # SQLite schema, tables, and CRUD operations
-│   ├── document_parser.py     # Resilient parser for PDF, DOCX, TXT, MD
+│   ├── document_parser.py     # Resilient parser for PDF, DOCX, TXT, MD, XLSX, CSV
 │   ├── submission_reader.py   # ZIP extraction, file caps, public GitHub fetcher
 │   ├── ai_review.py           # Gemini evaluation & Multilingual Fallback Engine
+│   ├── mentor_chat.py         # Conversational mentor Q&A, voice audio, HR assignments
 │   ├── review_service.py      # Workflow orchestration for tasks, reviews, and emails
 │   └── email_service.py       # Plain-text/HTML templating, SMTP, and simulated logging
 ├── sample_data/
 │   ├── company_requirements.md   # Ground truth task specification
 │   ├── company_requirements.txt  # Plain-text version
 │   ├── company_requirements.docx # Word document version
+│   ├── interns_roster.xlsx       # Sample Excel roster for HR import
+│   ├── interns_roster.csv        # Sample CSV roster for HR import
 │   ├── candidate_submission_v1_partial.zip   # Revision 1 demo archive
 │   ├── candidate_submission_v2_completed.zip # Revision 2 demo archive
 │   └── generate_samples.py       # Data generator utility
 ├── tests/
 │   ├── test_document_parser.py   # Document parsing test suite (6 tests)
+│   ├── test_mentor_chat.py       # Mentor chat, voice & spreadsheet tests (6 tests)
 │   ├── test_submission_reader.py # Submission ingestion test suite (4 tests)
 │   ├── test_database.py          # SQLite persistence test suite (5 tests)
 │   ├── test_ai_review.py         # AI & fallback evaluation test suite (2 tests)
@@ -65,7 +69,8 @@ python -m pytest tests/ -v
 ```
 **Output**:
 ```text
-============================= 21 passed in 4.39s ==============================
+============================= 27 passed in 5.25s ==============================
+```
 tests/test_ai_review.py::test_rule_based_review_structure PASSED         [  4%]
 tests/test_ai_review.py::test_multilingual_rule_based_reviews PASSED     [  9%]
 tests/test_app_smoke.py::test_app_smoke PASSED                           [ 14%]
